@@ -2485,7 +2485,12 @@ def start_reference_edit(app, user_id, dataset_id, engine, prompt, extra_edit_re
 #: engine cannot be added without deciding what it does with the extra refs. The
 #: values are mirrored in frontend EDIT_REF_SUPPORT (contract-tested), because
 #: the UI has to say this at pick time, not discover it as a silent drop.
-LOCAL_EDIT_REF_SUPPORT = {'klein': 'dataset_only', 'krea': 'primary_only'}
+#: Z-Image is 'primary_only' for the same reason as Krea, one step stronger: its
+#: graph takes a SINGLE init image (enqueue_zimage_edit's source_filename) and has
+#: no reference-conditioning channel at all, so there is nowhere for an extra angle
+#: to go.
+LOCAL_EDIT_REF_SUPPORT = {'klein': 'dataset_only', 'krea': 'primary_only',
+                          'zimage': 'primary_only'}
 
 
 def _start_local_reference_edit(user_id, dataset_id, ds, engine, prompt,
@@ -2518,6 +2523,11 @@ def _start_local_reference_edit(user_id, dataset_id, ds, engine, prompt,
         # any render, as the same 409 the generate route returns.
         from . import krea_edit_helper as helper
         helper.preflight()
+    elif engine == ZIMAGE_ENGINE:
+        # Same shape as Krea's: assets checked up front so a missing weight is the
+        # SAME actionable 409 the generate route returns, not a dead spinner.
+        from . import zimage_edit_helper as _zih
+        _zih.preflight()
 
     token = reference_edit_jobs.start(dataset_id, dsdir, engine, prompt)
     act_token = dataset_activity.begin(dataset_id, 'edit_reference', total=1, engine=engine)
@@ -2526,6 +2536,14 @@ def _start_local_reference_edit(user_id, dataset_id, ds, engine, prompt,
         if engine == KREA_ENGINE:
             from . import krea_edit_helper as helper
             job_id = helper.enqueue_krea_edit(
+                user_id=str(user_id), source_filename=ds.ref_filename,
+                source_path=ref_path, edit_prompt=prompt, extra_metadata=meta)
+        elif engine == ZIMAGE_ENGINE:
+            # No framing/aspect on purpose: a reference edit is a close-up pass over
+            # the reference itself, so it plans the `close` graph. Restaging here
+            # would hand back a different composition than the one being edited.
+            from . import zimage_edit_helper as _zih
+            job_id = _zih.enqueue_zimage_edit(
                 user_id=str(user_id), source_filename=ds.ref_filename,
                 source_path=ref_path, edit_prompt=prompt, extra_metadata=meta)
         else:
@@ -2546,7 +2564,8 @@ def _start_local_reference_edit(user_id, dataset_id, ds, engine, prompt,
         dataset_activity.end(act_token)
         from .klein_edit_helper import KleinModelsMissing
         from .krea_edit_helper import KreaModelsMissing
-        if isinstance(exc, (KleinModelsMissing, KreaModelsMissing)):
+        from .zimage_edit_helper import ZImageModelsMissing
+        if isinstance(exc, (KleinModelsMissing, KreaModelsMissing, ZImageModelsMissing)):
             # Typed on purpose: the route turns these into the SAME auto-download
             # 409 the generate path returns. Flattening them to a ValueError would
             # downgrade "I've started fetching the weight" to a bare 400.

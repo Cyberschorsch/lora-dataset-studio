@@ -343,10 +343,12 @@ const ZIMAGE_STEPS_MAX = 50   // mirrors zimage_edit_helper _steps() clamp
    BLANK-MEANS-AUTO, same as Krea's: the resolver finds a Z-Image build by folder
    convention, and the field only exists for pinning a specific file. `variant`
    defaults to auto and falls back to Turbo, which is the safe direction. */
-function ZImageCard({ config, setField }) {
+function ZImageCard({ config, setField, configDefaults }) {
   const zimage = config.zimage || {}
-  const denoise = Number(zimage.denoise ?? 0.75)
-  const variant = zimage.variant ?? 'auto'
+  const reset = { config, configDefaults, setField }
+  const dflt = (key) => defaultValueAt(configDefaults, 'zimage', key)
+  const denoise = Number(zimage.denoise ?? dflt('denoise'))
+  const variant = zimage.variant ?? dflt('variant')
   const showsBase = variant !== 'turbo'
   return (
     <Card
@@ -376,6 +378,7 @@ function ZImageCard({ config, setField }) {
           background are always generated fresh, and this sets how much of the held head
           gets repainted with them.
         </p>
+        <ResetToDefault label="Reference denoise" section="zimage" field="denoise" {...reset} />
       </div>
 
       <div className="mt-3 sm:max-w-md">
@@ -388,14 +391,16 @@ function ZImageCard({ config, setField }) {
           min={1}
           max={ZIMAGE_STEPS_MAX}
           step={1}
-          value={zimage.steps ?? 8}
+          value={zimage.steps ?? dflt('steps')}
           onChange={(e) => setField('zimage', 'steps',
-            e.target.value === '' ? 8 : Number(e.target.value))}
+            e.target.value === '' ? dflt('steps') : Number(e.target.value))}
           className={INPUT_CLASS}
         />
         <p className="mt-1 text-[0.6875rem] text-content-subtle">
-          8 is what Z-Image Turbo is distilled for. More is slower and rarely better.
+          {dflt('steps')} is what Z-Image Turbo is distilled for. More is slower and
+          rarely better. Ignored when the variant is Base.
         </p>
+        <ResetToDefault label="Sampler steps" section="zimage" field="steps" {...reset} />
       </div>
 
       <div className="mt-3 sm:max-w-md">
@@ -422,7 +427,7 @@ function ZImageCard({ config, setField }) {
         </label>
         <select
           id="zimage-body-source"
-          value={zimage.body_source ?? 'crop'}
+          value={zimage.body_source ?? dflt('body_source')}
           onChange={(e) => setField('zimage', 'body_source', e.target.value)}
           className={INPUT_CLASS}
         >
@@ -474,9 +479,9 @@ function ZImageCard({ config, setField }) {
               min={1}
               max={10}
               step={0.5}
-              value={zimage.base_cfg ?? 4.0}
+              value={zimage.base_cfg ?? dflt('base_cfg')}
               onChange={(e) => setField('zimage', 'base_cfg',
-                e.target.value === '' ? 4.0 : Number(e.target.value))}
+                e.target.value === '' ? dflt('base_cfg') : Number(e.target.value))}
               className={INPUT_CLASS}
             />
           </div>
@@ -490,9 +495,9 @@ function ZImageCard({ config, setField }) {
               min={1}
               max={60}
               step={1}
-              value={zimage.base_steps ?? 28}
+              value={zimage.base_steps ?? dflt('base_steps')}
               onChange={(e) => setField('zimage', 'base_steps',
-                e.target.value === '' ? 28 : Number(e.target.value))}
+                e.target.value === '' ? dflt('base_steps') : Number(e.target.value))}
               className={INPUT_CLASS}
             />
           </div>
@@ -1084,7 +1089,7 @@ export default function EnginesSection(props) {
 
       <KreaCard config={config} setField={setField} configDefaults={configDefaults} />
 
-      <ZImageCard config={config} setField={setField} />
+      <ZImageCard config={config} setField={setField} configDefaults={configDefaults} />
 
       <IdentityPromptsCard config={config} setField={setField} promptDefaults={props.promptDefaults}
         promptDefaultsBySubject={props.promptDefaultsBySubject}

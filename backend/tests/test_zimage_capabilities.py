@@ -13,7 +13,10 @@ def test_engine_dark_when_assets_missing(monkeypatch):
     assert 'zimage_model' in caps['comfyui']['zimage_missing']
 
 
-def test_engine_ready_when_all_present(monkeypatch):
+def test_engine_ready_when_all_present(app, monkeypatch):
+    # Needs an app context, unlike the dark case above: with comfy ok the probe
+    # goes on to klein_unsupported_enums(), which loads a workflow through
+    # current_app.logger. Same `with app.app_context()` shape as test_capabilities.
     from app.services import zimage_edit_helper as z
     monkeypatch.setattr(capabilities, 'probe_comfyui', lambda: {'ok': True})
     monkeypatch.setattr(z, 'resolve_zimage_unet', lambda selected=None: 'z image/u.safetensors')
@@ -21,5 +24,6 @@ def test_engine_ready_when_all_present(monkeypatch):
     monkeypatch.setattr(z, 'resolve_zimage_vae', lambda: 'z_image_ae.safetensors')
     monkeypatch.setattr(z, 'zimage_missing_assets', lambda: [])
     monkeypatch.setattr(z, 'zimage_invalid_assets', lambda: [])
-    caps = capabilities.probe(force=True)
+    with app.app_context():
+        caps = capabilities.probe(force=True)
     assert caps['engines']['zimage'] is True
