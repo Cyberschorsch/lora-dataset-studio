@@ -40,7 +40,7 @@ If nothing on the grid tells you where to start, the line at the bottom opens th
 
 ## Image engines
 
-This is where you connect the services that *generate* dataset images. The app has five engines: **Nano Banana** (Google Gemini), **ChatGPT** (OpenAI), **OpenRouter** (one account in front of many providers), and two that run locally through ComfyUI — **Klein** and **Krea 2 Edit**. Each of the three API engines lets you choose which model it asks for — see *Image models* below. ComfyUI itself is configured under **Local tools**; the API keys and the two local engines' own knobs are configured here.
+This is where you connect the services that *generate* dataset images. The app has six engines: **Nano Banana** (Google Gemini), **ChatGPT** (OpenAI), **OpenRouter** (one account in front of many providers), and three that run locally through ComfyUI — **Klein**, **Krea 2 Edit** and **Z-Image Turbo**. Each of the three API engines lets you choose which model it asks for — see *Image models* below. ComfyUI itself is configured under **Local tools**; the API keys and the three local engines' own knobs are configured here.
 
 ### API keys
 
@@ -123,11 +123,11 @@ Good to know: in subscription mode you get up to **5 reference images** per gene
 ### Engines
 
 - **Default engine** → `engines.default`. Which engine is preselected in the workspace. One of `nanobanana`, `chatgpt`, `openrouter`, `klein`, `krea`. Default **`chatgpt`**.
-- **Enabled engines** → `engines.enabled`. Checkboxes deciding which engines appear as options at all. Default: **all five** enabled. Untick an engine you never use to declutter the generator picker. An engine added by a later update is offered here automatically, even on an install whose settings were saved long before it existed — while an engine you unticked on purpose stays unticked, because the app records which engines it was showing you at the moment you chose.
+- **Enabled engines** → `engines.enabled`. Checkboxes deciding which engines appear as options at all. Default: **all six** enabled. Untick an engine you never use to declutter the generator picker. An engine added by a later update is offered here automatically, even on an install whose settings were saved long before it existed — while an engine you unticked on purpose stays unticked, because the app records which engines it was showing you at the moment you chose.
 
 #### Using several engines in one batch
 
-In the workspace the engine cards are **checkboxes**, not a one-of-five choice: tick as many as you want. Each engine has its own colour (Klein indigo, Krea 2 Edit violet, Nano Banana amber, ChatGPT sky, OpenRouter fuchsia) and every generated tile is labelled with the engine that made it, so a mixed batch stays readable.
+In the workspace the engine cards are **checkboxes**, not a one-of-six choice: tick as many as you want. Each engine has its own colour (Klein indigo, Krea 2 Edit violet, Z-Image Turbo teal, Nano Banana amber, ChatGPT sky, OpenRouter fuchsia) and every generated tile is labelled with the engine that made it, so a mixed batch stays readable.
 
 From **two** engines on, a mode appears deciding what "several engines" means:
 
@@ -140,10 +140,10 @@ Split gives you a more varied dataset for the price you already pay; All engines
 
 Good to know:
 
-- **The cost shown is the whole run's.** The two local engines contribute nothing (it's your GPU) and neither does ChatGPT on the subscription lane.
-- **The local engines run last and in series.** The API batches start immediately in the background; the local GPU handles its own shots one at a time behind them. The Klein and Krea cards say so while a mixed run is being set up.
+- **The cost shown is the whole run's.** The three local engines contribute nothing (it's your GPU) and neither does ChatGPT on the subscription lane.
+- **The local engines run last and in series.** The API batches start immediately in the background; the local GPU handles its own shots one at a time behind them. The Klein, Krea and Z-Image cards say so while a mixed run is being set up.
 - **There is a cap per batch** (60 images in flight on one dataset). A run over it is refused *before* it starts, with the number named — switch to Split, untick an engine, or select fewer shots.
-- **🔞 NSFW shots stay local-only.** The uncensored catalog unlocks only when **every** ticked engine is local (Klein, Krea 2 Edit, or both), because those shots must never reach a third-party API.
+- **🔞 NSFW shots stay local-only.** The uncensored catalog unlocks only when **every** ticked engine is local (Klein, Krea 2 Edit and/or Z-Image Turbo), because those shots must never reach a third-party API.
 - **Regenerating one tile** (🔄) uses the **first** ticked engine, not all of them.
 
 ### Krea 2 Edit (local)
@@ -174,6 +174,30 @@ Two behaviours worth knowing before you build a dataset with it:
 - **Extra reference images are ignored.** Identity comes from the primary reference alone. Klein and the API engines still use your extra refs.
 
 Outfits and expressions are steered differently here than on the other engines: this model preserves anything it is not *positively* told to change, so the catalog's "a different outfit (not the one in the reference)" phrasing is rewritten at generation time into a concrete garment ("wearing a red knit sweater"), picked from the shot's own name — so outfits genuinely differ across the dataset while regenerating one shot reproduces its own.
+
+### Z-Image Turbo (local)
+
+The third local engine. It has **no identity-edit model** — instead of restaging like
+Klein or holding an identity like Krea 2 Edit, it generates by running **img2img
+straight over your reference photo** with a fast, distilled base model. That makes
+likeness **looser than Klein or Krea at any setting**: it is a strong pick for style
+and concept datasets, and on a character dataset the denoise dial below is what keeps
+a face recognisable.
+
+Unlike Krea 2 Edit it needs no custom node pack. It needs three weight files inside
+your ComfyUI — a Z-Image Turbo base model, the **Qwen3-4B** text encoder, and the
+matching VAE — and **Setup ▸ Install everything** downloads all three with one click;
+the engine card in the workspace names whichever is still missing.
+
+Settings:
+
+- **Reference denoise** → `zimage.denoise`. Range `0.1`–`1.0`, default **`0.65`**.
+  Z-Image Turbo runs img2img from your reference. Denoise is the identity ↔ prompt
+  dial: **low** keeps more of the reference (stronger likeness, less variety),
+  **high** follows the prompt (looser likeness). 0.65 is the balanced default.
+- **Sampler steps** → `zimage.steps`. Range `1`–`50`, default **`8`**. Sampler steps
+  per generated variation. Z-Image Turbo is distilled for ~8 steps; more rarely helps
+  and costs GPU time.
 
 ### Klein generation LoRA presets (optional)
 

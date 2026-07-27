@@ -196,6 +196,27 @@ composition, but you no longer need to crop it merely to give a selected body
 card enough vertical room. Reference quality still matters for likeness; the
 selected card now owns the output frame.
 
+## Z-Image Turbo — a local img2img engine
+
+**Z-Image Turbo** is the third local engine, running through your own ComfyUI
+alongside Klein and Krea 2 Edit. Where Klein restages your reference and Krea 2 Edit
+holds an identity with a dedicated edit LoRA, Z-Image Turbo has **no identity-edit
+model at all**: it generates by running **img2img straight over your reference
+photo** with a fast, distilled base model. That makes likeness **looser than Klein
+or Krea** at every setting — a good match for style and concept datasets, and on a
+character dataset it needs the denoise dial (below) turned down to hold a face.
+
+It needs three weight files inside your ComfyUI: a Z-Image Turbo base model, the
+Qwen3-4B text encoder, and the matching VAE. Unlike Krea 2 Edit these are **not a
+manual install** — **Setup ▸ Install everything** downloads all three with one
+click, and the engine card in the workspace names whichever is still missing.
+
+**Reference denoise** (`zimage.denoise`, Settings ▸ Image engines) is the identity ↔
+prompt dial: **low** keeps more of the reference (stronger likeness, less variety),
+**high** follows the prompt more closely (looser likeness, more variety). 0.65 is
+the balanced default; **sampler steps** (`zimage.steps`, default 8) sits right next
+to it for the rare case where more render time actually helps.
+
 ## Your own shot catalog (JSON import)
 
 The workspace ships a built-in shot catalog per subject type (53 shots for a
