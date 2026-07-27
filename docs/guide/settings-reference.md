@@ -122,7 +122,7 @@ Good to know: in subscription mode you get up to **5 reference images** per gene
 
 ### Engines
 
-- **Default engine** → `engines.default`. Which engine is preselected in the workspace. One of `nanobanana`, `chatgpt`, `openrouter`, `klein`, `krea`. Default **`chatgpt`**.
+- **Default engine** → `engines.default`. Which engine is preselected in the workspace. One of `nanobanana`, `chatgpt`, `openrouter`, `klein`, `krea`, `zimage`. Default **`chatgpt`**.
 - **Enabled engines** → `engines.enabled`. Checkboxes deciding which engines appear as options at all. Default: **all six** enabled. Untick an engine you never use to declutter the generator picker. An engine added by a later update is offered here automatically, even on an install whose settings were saved long before it existed — while an engine you unticked on purpose stays unticked, because the app records which engines it was showing you at the moment you chose.
 
 #### Using several engines in one batch
