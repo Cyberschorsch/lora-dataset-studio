@@ -462,6 +462,16 @@ const TOPICS = [
   setting('krea.identity_lora', 'engines', 'krea-identity-lora', 'Krea 2 Edit identity LoRA',
     ['krea', 'identity', 'edit lora', 'lora', 'krea2_identity_edit', 'civitai',
      'node pack', 'comfyui-krea2edit', 'missing', 'local engine']),
+  // Z-Image Turbo — the third LOCAL engine. It has no identity-edit model, so it
+  // generates by img2img straight over the reference and likeness is LOOSER than
+  // Klein or Krea at any setting; `denoise` is the likeness <-> prompt dial,
+  // mirroring Krea's grounding_px.
+  setting('zimage.denoise', 'engines', 'zimage-denoise', 'Z-Image Turbo reference denoise',
+    ['zimage', 'z-image', 'z-image turbo', 'denoise', 'img2img', 'consistency', 'likeness',
+     'resemblance', 'prompt adherence', 'variety', 'identity', 'reference', 'dial', 'slider',
+     'local engine', '0.65']),
+  setting('zimage.steps', 'engines', 'zimage-steps', 'Z-Image Turbo sampler steps',
+    ['zimage', 'z-image', 'steps', 'sampler', 'quality', 'slower', 'local engine', '8 steps']),
   setting('identity_prompts.face', 'engines', 'identity-prompts', 'Identity lock prompts (API engines)',
     ['identity', 'prompt', 'guard', 'lock', 'face', 'reference', 'beautify', 'preserve', 'consistency', 'edit prompt',
      'subject type', 'animal', 'per subject', 'leak', 'tails', 'extra limbs']),
@@ -754,6 +764,15 @@ const TOPICS = [
      'body', 'back', 'full body', 'full length', 'framing', 'cropped', 'tight',
      'too close', 'zoomed in', 'bust instead of body', '3:4'],
     '/datasets?section=add', 'using-the-app', 'krea-and-the-shape-of-your-reference-photo'),
+  // Z-Image Turbo has no identity-edit model — it generates by img2img straight
+  // over the reference, so likeness is looser than Klein or Krea at any denoise
+  // setting. This is the narrative counterpart to the zimage.denoise / .steps
+  // settings above, which point into the settings-reference chapter instead.
+  action('zimage-engine-overview', 'Z-Image Turbo: a local img2img engine',
+    ['zimage', 'z-image', 'z-image turbo', 'img2img', 'local engine', 'base model',
+     'identity', 'looser', 'likeness', 'denoise', 'nsfw', 'free', 'gpu',
+     'download weights', 'setup', 'comfyui', 'text encoder', 'qwen3', 'vae'],
+    '/settings/engines', 'using-the-app', 'z-image-turbo-a-local-img2img-engine'),
   action('action-caption-generate', 'Generate captions',
     ['caption', 'generate', 'joycaption', 'ollama', 'text'],
     '/datasets?section=captions&panel=generate', 'dataset-guide', '3-captions-the-make-or-break-step'),

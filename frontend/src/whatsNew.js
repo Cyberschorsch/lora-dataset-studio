@@ -219,6 +219,14 @@ export const WHATS_NEW = [
     to: '/bank',
   },
   {
+    id: '2026-07-27-zimage-turbo-engine',
+    date: '2026-07-27',
+    title: 'Generate with Z-Image Turbo (local)',
+    blurb:
+      'A third local engine joins Klein and Krea 2 Edit: Z-Image Turbo generates fast img2img variations straight from your reference photo, entirely on your own GPU — free, and NSFW-capable like the other two local engines. Its three weight files download in one click from Setup ▸ Install (each listed on its own row), and picking Z-Image in the workspace and pressing Generate starts the same download for you. Like Krea, it stays out of “Install everything” on purpose — it is a second-choice engine, not the default. It has no identity-edit model, so likeness runs looser than Klein or Krea at any setting — that base-model trade-off is what the new denoise dial in Settings ▸ Image engines is for: low sticks close to the reference, high follows the prompt.',
+    to: '/settings/engines',
+  },
+  {
     id: '2026-07-27-hugging-face-token-reaches-training',
     date: '2026-07-27',
     title: 'Gated models train again — your Hugging Face login is no longer lost on the way',
