@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { zimageUnavailableReason, denoiseDescription } from './zimageEngine.js';
+import { zimageUnavailableReason, denoiseDescription, variantDescription } from './zimageEngine.js';
 
 test('ordered failure reasons', () => {
   assert.match(zimageUnavailableReason({ enabledInSettings: false }), /disabled in Settings/);
@@ -22,4 +22,13 @@ test('present-but-invalid beats "ready"', () => {
 test('denoise bands read plainly', () => {
   assert.match(denoiseDescription(0.3), /sticks to the reference/);
   assert.match(denoiseDescription(0.9), /follows the prompt/);
+});
+
+test('variant bands name the real trade-off', () => {
+  // Turbo is guidance-distilled (cfg pinned, negative inert); Base is not.
+  assert.match(variantDescription('turbo'), /8 steps/);
+  assert.match(variantDescription('base'), /negative prompt/);
+  // Auto must say which way it fails, since that is the whole safety argument.
+  assert.match(variantDescription('auto'), /Turbo/);
+  assert.match(variantDescription(undefined), /Auto/);
 });

@@ -364,7 +364,10 @@ const fullCaps = () => ({
   // reachable matters for the Krea node pack: an unreachable ComfyUI's node probe
   // fails open, so "nothing missing" from a stopped ComfyUI must not read as
   // "the pack is installed".
-  comfyui: { dir_valid: true, reachable: true, klein_missing: [], krea_missing: [] },
+  // zimage_base_present is PRESENCE, not absence: the optional Base checkpoint is a
+  // second checkpoint, never a missing dependency, so it is reported the other way up.
+  comfyui: { dir_valid: true, reachable: true, klein_missing: [], krea_missing: [],
+    zimage_base_present: true },
 });
 
 test('installAllPlan is empty when everything installable is present', () => {
@@ -436,7 +439,7 @@ test('installCatalog lists every app-installable component, present + available'
       'klein_model', 'klein_text_encoder', 'klein_vae', 'klein_lora',
       'krea_nodes', 'krea_model', 'krea_text_encoder', 'krea_vae',
       'krea_identity_lora',
-      'zimage_model', 'zimage_text_encoder', 'zimage_vae'],
+      'zimage_model', 'zimage_text_encoder', 'zimage_vae', 'zimage_base_model'],
   );
   // Everything installed in fullCaps -> every tile present, and available to REINSTALL.
   for (const c of Object.values(cat)) {
@@ -448,7 +451,7 @@ test('installCatalog lists every app-installable component, present + available'
 test('installCatalog stays fully available for reinstall when all is green', () => {
   // The menu must never collapse once installed — each item can always be repaired.
   const cat = installCatalog(fullCaps());
-  assert.ok(cat.length === 16 && cat.every((c) => c.available));
+  assert.ok(cat.length === 17 && cat.every((c) => c.available));
 });
 
 test('installCatalog marks missing ML extras not-present but still available', () => {

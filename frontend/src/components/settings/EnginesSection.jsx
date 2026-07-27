@@ -337,19 +337,22 @@ function KreaCard({ config, setField, configDefaults }) {
 
 const ZIMAGE_STEPS_MAX = 50   // mirrors zimage_edit_helper _steps() clamp
 
-/* Z-Image Turbo — the third LOCAL engine. It has no identity-edit model, so it
-   generates by img2img from the reference and likeness is LOOSER than Klein/Krea;
-   `denoise` is the likeness <-> prompt dial. The base-model field is
+/* Z-Image — the third LOCAL engine. It has no identity-edit model, so it builds
+   each shot from the reference itself; `denoise` is the likeness <-> prompt dial and
+   now drives BOTH graph shapes (see the copy below). The base-model field is
    BLANK-MEANS-AUTO, same as Krea's: the resolver finds a Z-Image build by folder
-   convention, and the field only exists for pinning a specific file. */
+   convention, and the field only exists for pinning a specific file. `variant`
+   defaults to auto and falls back to Turbo, which is the safe direction. */
 function ZImageCard({ config, setField }) {
   const zimage = config.zimage || {}
   const denoise = Number(zimage.denoise ?? 0.75)
+  const variant = zimage.variant ?? 'auto'
+  const showsBase = variant !== 'turbo'
   return (
     <Card
       id="zimage-engine"
-      title="Z-Image Turbo (local)"
-      help="The third local engine: fast Z-Image Turbo img2img straight from your reference photo. It has no identity-edit model, so likeness is LOOSER than Klein or Krea — the denoise dial trades likeness against prompt-adherence. Free on your own GPU, NSFW-capable. It needs three model files (base model, Qwen3-4B text encoder, VAE); the Setup step can download them, and the engine card in the workspace names whatever is still missing."
+      title="Z-Image (local)"
+      help="The third local engine: fast Z-Image straight from your reference photo. It has no identity-edit model, so likeness is LOOSER than Klein or Krea — the denoise dial trades likeness against prompt-adherence. Close-ups repaint over the reference; body, bust and wide shots are RESTAGED on a canvas at the shot's own aspect with only the head held, which is what lets the pose actually change. Free on your own GPU, NSFW-capable. It needs three model files (base model, Qwen3-4B text encoder, VAE); the Setup step can download them, and the engine card in the workspace names whatever is still missing."
     >
       <div className="sm:max-w-md">
         <label htmlFor="zimage-denoise" className="block text-xs font-medium text-content">
@@ -366,12 +369,12 @@ function ZImageCard({ config, setField }) {
           className="mt-1 w-full accent-teal-500"
         />
         <p className="mt-1 text-[0.6875rem] text-content-subtle">
-          How much the model repaints over your reference. <b>Lower</b> = sticks to the
-          reference (stronger likeness, less variety). <b>Higher</b> = follows the prompt
-          (looser likeness). 0.75 is the default — Z-Image is a base model, not an edit
-          model, so it needs more repaint than Klein or Krea before the prompt lands. It
-          varies expression, light, outfit and background well, but cannot rotate a frontal
-          reference into a true profile at any likeness-preserving setting.
+          The likeness dial, on every shot. <b>Lower</b> = sticks to the reference
+          (stronger likeness, less variety). <b>Higher</b> = follows the prompt (looser
+          likeness). 0.75 is the default. On close-ups it is how much the model repaints
+          over your reference; on restaged shots (body, bust, wide) the pose and
+          background are always generated fresh, and this sets how much of the held head
+          gets repainted with them.
         </p>
       </div>
 
@@ -412,6 +415,116 @@ function ZImageCard({ config, setField }) {
           filename (e.g. a smaller fp8 build you dropped in) to pin it.
         </p>
       </div>
+
+      <div className="mt-3 sm:max-w-md">
+        <label htmlFor="zimage-body-source" className="block text-xs font-medium text-content">
+          Restage source
+        </label>
+        <select
+          id="zimage-body-source"
+          value={zimage.body_source ?? 'crop'}
+          onChange={(e) => setField('zimage', 'body_source', e.target.value)}
+          className={INPUT_CLASS}
+        >
+          <option value="crop">Head crop (default)</option>
+          <option value="original">Full-frame original</option>
+        </select>
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
+          What a restaged body or bust shot is built from. <b>Head crop</b> composites
+          your square reference crop onto the shot's canvas. <b>Full-frame original</b>
+          uses the uncropped photo instead, which looks more natural when that photo
+          actually shows a body — and worse when it is itself a headshot. Either way only
+          the head is held; the pose, outfit and background are generated.
+        </p>
+      </div>
+
+      <div className="mt-3 sm:max-w-md">
+        <label htmlFor="zimage-variant" className="block text-xs font-medium text-content">
+          Model variant
+        </label>
+        <select
+          id="zimage-variant"
+          value={variant}
+          onChange={(e) => setField('zimage', 'variant', e.target.value)}
+          className={INPUT_CLASS}
+        >
+          <option value="auto">Auto — detect from the filename</option>
+          <option value="turbo">Turbo (distilled, 8 steps)</option>
+          <option value="base">Base (not distilled, ~28 steps)</option>
+        </select>
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
+          <b>Turbo</b> is guidance-distilled: it runs at cfg 1.0 and ignores negative
+          prompts. <b>Base</b> is the full checkpoint — it takes a real guidance scale and
+          a real negative prompt, so it follows the prompt much more closely on restaged
+          shots, at several times the generation time. Auto guesses from the filename and
+          falls back to Turbo, because Turbo settings on a Base model merely look soft
+          while Base settings on a Turbo model produce burnt output.
+        </p>
+      </div>
+
+      {showsBase && (
+        <div className="mt-3 grid gap-3 sm:max-w-md sm:grid-cols-2">
+          <div>
+            <label htmlFor="zimage-base-cfg" className="block text-xs font-medium text-content">
+              Base guidance (cfg)
+            </label>
+            <input
+              id="zimage-base-cfg"
+              type="number"
+              min={1}
+              max={10}
+              step={0.5}
+              value={zimage.base_cfg ?? 4.0}
+              onChange={(e) => setField('zimage', 'base_cfg',
+                e.target.value === '' ? 4.0 : Number(e.target.value))}
+              className={INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label htmlFor="zimage-base-steps" className="block text-xs font-medium text-content">
+              Base steps
+            </label>
+            <input
+              id="zimage-base-steps"
+              type="number"
+              min={1}
+              max={60}
+              step={1}
+              value={zimage.base_steps ?? 28}
+              onChange={(e) => setField('zimage', 'base_steps',
+                e.target.value === '' ? 28 : Number(e.target.value))}
+              className={INPUT_CLASS}
+            />
+          </div>
+          <p className="text-[0.6875rem] text-content-subtle sm:col-span-2">
+            Used only when the variant is Base. 4.0 and 28 steps are the starting points;
+            the Turbo "Sampler steps" field above is left alone so switching back is
+            instant.
+          </p>
+        </div>
+      )}
+
+      {showsBase && (
+        <div className="mt-3 sm:max-w-md">
+          <label htmlFor="zimage-base-negative" className="block text-xs font-medium text-content">
+            Base negative prompt (optional)
+          </label>
+          <textarea
+            id="zimage-base-negative"
+            rows={2}
+            value={zimage.base_negative ?? ''}
+            onChange={(e) => setField('zimage', 'base_negative', e.target.value)}
+            placeholder="blank — use the built-in list"
+            className={INPUT_CLASS}
+          />
+          <p className="mt-1 text-[0.6875rem] text-content-subtle">
+            Blank uses a built-in list (blur, jpeg artifacts, deformed hands, watermarks,
+            and — for photographic subjects only — cartoon/illustration). Anything you
+            type here replaces that list entirely. Ignored on Turbo, where the negative
+            branch has no effect.
+          </p>
+        </div>
+      )}
     </Card>
   )
 }

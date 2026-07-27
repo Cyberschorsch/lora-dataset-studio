@@ -117,10 +117,22 @@ DEFAULTS = {
     #   - ai-toolkit divides the mask by its own mean (SDTrainer), so an image
     #     masked edge to edge at exactly 0.0 divides by zero -> NaN loss -> dead run.
     'face_mask': {'expand': 2.0, 'min_weight': 0.1},
-    # Z-Image Turbo local engine (img2img). denoise is THE identity<->prompt dial
-    # (low = sticks to the reference, high = follows the prompt); base_model is the
-    # optional pinned UNET basename (blank = auto-resolve the first Z-Image build).
-    'zimage': {'denoise': 0.75, 'steps': 8, 'base_model': ''},
+    # Z-Image local engine. `denoise` is THE identity<->prompt dial and drives BOTH
+    # graph shapes (low = sticks to the reference, high = follows the prompt): on a
+    # close-up it is the sampler denoise, on a restaged body/bust shot it sets how
+    # much of the held head is regenerated. `base_model` is the optional pinned UNET
+    # basename (blank = auto-resolve the first Z-Image build). `variant` picks the
+    # Turbo/Base behaviour: Turbo is guidance-distilled so cfg is pinned to 1.0 and
+    # the negative prompt is inert, Base takes base_cfg/base_steps and a real
+    # negative. `steps` stays TURBO steps — Base needs ~28 and reusing the key would
+    # silently run every existing install's saved 8. `body_source` = whether a
+    # restaged body shot composites the square head crop or the full-frame original.
+    'zimage': {'denoise': 0.75, 'steps': 8, 'base_model': '',
+               'variant': 'auto',        # auto|turbo|base
+               'base_cfg': 4.0,          # 1.0..10.0, Base only
+               'base_steps': 28,         # 1..60, Base only
+               'base_negative': '',      # blank = the shipped default text
+               'body_source': 'crop'},   # crop|original
     # Cloud GPU training (vast.ai). Everything has a sane default: the only
     # required user input is the VAST_API_KEY secret. Values here are knobs
     # for power users / for adjusting after the real-world smoke test.

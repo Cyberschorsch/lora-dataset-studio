@@ -620,6 +620,9 @@ def _autostart_krea_install(missing, missing_nodes):
 _ZIMAGE_ASSET_LABELS = {
     'zimage_model': 'Z-Image model', 'zimage_text_encoder': 'text encoder',
     'zimage_vae': 'VAE',
+    # Never reaches a 409 (it is optional and never in ZIMAGE_REQUIRED); listed so
+    # the Setup surface can name it.
+    'zimage_base_model': 'Z-Image Base model',
 }
 
 

@@ -955,6 +955,37 @@ def wrap_variation_zimage(prompt: str, nsfw: bool = False, framing: str | None =
         + f"{ending}")
 
 
+# Negative prompt for Z-Image BASE only. Turbo is guidance-distilled — it runs at
+# cfg 1.0, where the negative branch has no effect at all, so sending one would be
+# theatre. Lives here rather than in the helper because it is PROMPT text and has to
+# vary by subject type, which is what this module already owns.
+_ZIMAGE_NEGATIVE_BASE = (
+    'blurry, out of focus, low resolution, jpeg artifacts, oversaturated, '
+    'overexposed, washed out, plastic skin, waxy skin, airbrushed, deformed hands, '
+    'extra fingers, extra limbs, fused fingers, malformed anatomy, text, watermark, '
+    'signature, logo, caption, frame, border, letterbox, collage, split screen, '
+    'multiple views')
+# Photographic-only clause. Dropped for drawn subjects, where it would fight the
+# render tail the subject type asks for.
+_ZIMAGE_NEGATIVE_PHOTO = ', cartoon, 3d render, cgi, painting, illustration'
+
+_ZIMAGE_DRAWN_SUBJECTS = ('anime',)
+
+
+def zimage_negative(subject_type: str = 'human') -> str:
+    """What Z-Image BASE should steer away from. A non-blank `zimage.base_negative`
+    replaces this wholesale — same blank-means-default contract as every other
+    prompt part here."""
+    from .. import config as cfg
+    override = (cfg.get('zimage.base_negative') or '').strip()
+    if override:
+        return override
+    st = normalize_subject_type(subject_type)
+    if st in _ZIMAGE_DRAWN_SUBJECTS:
+        return _ZIMAGE_NEGATIVE_BASE
+    return _ZIMAGE_NEGATIVE_BASE + _ZIMAGE_NEGATIVE_PHOTO
+
+
 
 def _e(i, axis, framing, label, prompt, co=False, cb=False, aspect=None):
     return {'id': i, 'axis': axis, 'framing': framing, 'label': label,

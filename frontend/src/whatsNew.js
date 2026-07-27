@@ -219,6 +219,14 @@ export const WHATS_NEW = [
     to: '/bank',
   },
   {
+    id: '2026-07-28-zimage-restage-poses',
+    date: '2026-07-28',
+    title: 'Z-Image can finally change the pose — body and wide shots are restaged, not cropped',
+    blurb:
+      'Z-Image still handed back a head no matter which shot you asked for: "full body, standing" came out a bust, "walking away" came out a portrait. The reason was geometry, not prompting. The reference Z-Image works from is your SQUARE head crop, and the output canvas was being copied from that same square — so a body shot was being painted into a head-shaped frame, and the pose was locked by the reference before the prompt got a say. Two things changed. Every shot now renders at its OWN aspect (the catalogue already knew each shot wanted 3:4, 9:16 or 16:9 — Z-Image was throwing that away). And body, bust and wide shots are now RESTAGED: the shot is built on a fresh canvas, only your subject\'s head is held in place, and the pose, outfit and background are generated around it — the same split between identity and composition that makes Krea flexible. Back-view shots no longer get a face pasted in backwards; they lean on your full-frame original when you have one. Also new: if you download the full Z-Image Base checkpoint (Setup ▸ Install), the engine switches to real guidance and real negative prompts, which follows your prompt far more closely — at several times the generation time. The denoise dial in Settings ▸ Image engines still means the same thing: lower for likeness, higher for variety.',
+    to: '/settings/engines',
+  },
+  {
     id: '2026-07-28-zimage-variations-actually-vary',
     date: '2026-07-28',
     title: 'Z-Image variations no longer come out as copies of your reference',

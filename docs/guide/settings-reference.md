@@ -155,33 +155,67 @@ Two behaviours worth knowing before you build a dataset with it:
 
 Outfits and expressions are steered differently here than on the other engines: this model preserves anything it is not *positively* told to change, so the catalog's "a different outfit (not the one in the reference)" phrasing is rewritten at generation time into a concrete garment ("wearing a red knit sweater"), picked from the shot's own name — so outfits genuinely differ across the dataset while regenerating one shot reproduces its own.
 
-### Z-Image Turbo (local)
+### Z-Image (local)
 
 The third local engine. It has **no identity-edit model** — instead of restaging like
-Klein or holding an identity like Krea 2 Edit, it generates by running **img2img
-straight over your reference photo** with a fast, distilled base model. That makes
-likeness **looser than Klein or Krea at any setting**: it is a strong pick for style
-and concept datasets, and on a character dataset the denoise dial below is what keeps
-a face recognisable.
+Klein or holding an identity like Krea 2 Edit, it builds each shot from your reference
+photo directly with a fast base model. That makes likeness **looser than Klein or Krea
+at any setting**: it is a strong pick for style and concept datasets, and on a
+character dataset the denoise dial below is what keeps a face recognisable.
 
 Unlike Krea 2 Edit it needs no custom node pack. It needs three weight files inside
 your ComfyUI — a Z-Image Turbo base model, the **Qwen3-4B** text encoder, and the
 matching VAE — and **Setup ▸ Install everything** downloads all three with one click;
 the engine card in the workspace names whichever is still missing.
 
+**Two graph shapes, picked per shot.** The reference the engine works from is your
+*square head crop*, so painting every shot over it could only ever return a head.
+Instead:
+
+- **Close-ups** (`face` shots at a square aspect) run img2img over the reference, at
+  the shot's own aspect.
+- **Body, bust and wide shots** are **restaged**: the shot is built on a fresh canvas
+  at its own aspect, your subject's head is composited in and *held*, and the pose,
+  outfit and background are generated around it. This is the same split between
+  identity and composition that makes Krea flexible, done with stock ComfyUI nodes.
+- **Back shots** never get a frontal face pasted in backwards. If your dataset kept a
+  full-frame original, the shot is biased from that; otherwise it is generated freely
+  and **carries no identity link at all** — turn those shots off if that matters.
+
 Settings:
 
 - **Reference denoise** → `zimage.denoise`. Range `0.1`–`1.0`, default **`0.75`**.
-  Z-Image Turbo runs img2img from your reference. Denoise is the identity ↔ prompt
-  dial: **low** keeps more of the reference (stronger likeness, less variety),
-  **high** follows the prompt (looser likeness). Z-Image is a *base* model, not an
-  edit model, so it needs more denoise than Klein or Krea before the prompt lands —
-  0.75 is the default; raise it toward 0.85 for more variety, lower it for tighter
-  likeness. Even at the top it cannot rotate a frontal reference into a true profile
-  without the face drifting (an img2img limit — that is what Klein/Krea are for).
+  The identity ↔ prompt dial, and it means the same thing on both graph shapes:
+  **low** keeps more of the reference (stronger likeness, less variety), **high**
+  follows the prompt (looser likeness). On close-ups it is the sampler denoise; on
+  restaged shots the pose and background are always generated fresh, and this sets
+  how much of the held head is repainted along with them. Raise it toward 0.85 for
+  more variety, lower it for tighter likeness.
 - **Sampler steps** → `zimage.steps`. Range `1`–`50`, default **`8`**. Sampler steps
-  per generated variation. Z-Image Turbo is distilled for ~8 steps; more rarely helps
-  and costs GPU time.
+  per generated variation, **for the Turbo variant only**. Z-Image Turbo is distilled
+  for ~8 steps; more rarely helps and costs GPU time.
+- **Restage source** → `zimage.body_source`. `crop` (default) or `original`. What a
+  restaged body or bust shot is composited from. `crop` uses your square reference
+  crop. `original` uses the uncropped photo instead — more natural when that photo
+  actually shows a body, worse when it is itself a headshot. Either way only the head
+  is held.
+- **Model variant** → `zimage.variant`. `auto` (default), `turbo` or `base`.
+  Z-Image **Turbo** is guidance-distilled: it runs at cfg 1.0 and ignores negative
+  prompts entirely. Z-Image **Base** is the full checkpoint — it takes a real guidance
+  scale and a real negative prompt, so it follows the prompt considerably more closely
+  on restaged shots, at several times the generation time. `auto` guesses from the
+  model filename and **falls back to Turbo**, deliberately: Turbo settings on a Base
+  model merely look soft, while Base settings on a Turbo model produce burnt output.
+  The Base checkpoint is an optional extra download in **Setup ▸ Install**.
+- **Base guidance (cfg)** → `zimage.base_cfg`. Range `1.0`–`10.0`, default **`4.0`**.
+  Used only when the variant resolves to Base.
+- **Base steps** → `zimage.base_steps`. Range `1`–`60`, default **`28`**. Used only
+  when the variant resolves to Base. Kept separate from `zimage.steps` on purpose, so
+  switching variants does not silently run Base at 8 steps.
+- **Base negative prompt** → `zimage.base_negative`. Default **blank**, which uses a
+  built-in list (blur, jpeg artifacts, deformed hands, watermarks, and — for
+  photographic subjects only — cartoon/illustration). Anything you set here replaces
+  that list entirely. Ignored on Turbo, where the negative branch has no effect.
 
 ### Klein generation LoRA presets (optional)
 

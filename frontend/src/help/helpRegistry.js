@@ -462,16 +462,30 @@ const TOPICS = [
   setting('krea.identity_lora', 'engines', 'krea-identity-lora', 'Krea 2 Edit identity LoRA',
     ['krea', 'identity', 'edit lora', 'lora', 'krea2_identity_edit', 'civitai',
      'node pack', 'comfyui-krea2edit', 'missing', 'local engine']),
-  // Z-Image Turbo — the third LOCAL engine. It has no identity-edit model, so it
-  // generates by img2img straight over the reference and likeness is LOOSER than
-  // Klein or Krea at any setting; `denoise` is the likeness <-> prompt dial,
-  // mirroring Krea's grounding_px.
-  setting('zimage.denoise', 'engines', 'zimage-denoise', 'Z-Image Turbo reference denoise',
+  // Z-Image — the third LOCAL engine. It has no identity-edit model, so close-ups
+  // repaint over the reference while body/bust/wide shots are RESTAGED on a canvas at
+  // the shot's own aspect with only the head held. `denoise` is the likeness <->
+  // prompt dial on both paths, mirroring Krea's grounding_px.
+  setting('zimage.denoise', 'engines', 'zimage-denoise', 'Z-Image reference denoise',
     ['zimage', 'z-image', 'z-image turbo', 'denoise', 'img2img', 'consistency', 'likeness',
      'resemblance', 'prompt adherence', 'variety', 'identity', 'reference', 'dial', 'slider',
-     'local engine', '0.75']),
-  setting('zimage.steps', 'engines', 'zimage-steps', 'Z-Image Turbo sampler steps',
+     'restage', 'pose', 'local engine', '0.75']),
+  setting('zimage.steps', 'engines', 'zimage-steps', 'Z-Image sampler steps',
     ['zimage', 'z-image', 'steps', 'sampler', 'quality', 'slower', 'local engine', '8 steps']),
+  setting('zimage.body_source', 'engines', 'zimage-body-source', 'Z-Image restage source',
+    ['zimage', 'z-image', 'restage', 'body', 'bust', 'pose', 'full frame', 'original',
+     'head crop', 'composite', 'canvas', 'local engine']),
+  setting('zimage.variant', 'engines', 'zimage-variant', 'Z-Image model variant (Turbo / Base)',
+    ['zimage', 'z-image', 'variant', 'turbo', 'base', 'distilled', 'guidance', 'cfg',
+     'auto', 'detect', 'local engine']),
+  setting('zimage.base_cfg', 'engines', 'zimage-base-cfg', 'Z-Image Base guidance scale',
+    ['zimage', 'z-image', 'base', 'cfg', 'guidance', 'guidance scale', 'prompt adherence',
+     'local engine', '4.0']),
+  setting('zimage.base_steps', 'engines', 'zimage-base-steps', 'Z-Image Base sampler steps',
+    ['zimage', 'z-image', 'base', 'steps', 'sampler', 'slower', 'local engine', '28 steps']),
+  setting('zimage.base_negative', 'engines', 'zimage-base-negative', 'Z-Image Base negative prompt',
+    ['zimage', 'z-image', 'base', 'negative', 'negative prompt', 'avoid', 'artifacts',
+     'watermark', 'local engine']),
   setting('identity_prompts.face', 'engines', 'identity-prompts', 'Identity lock prompts (API engines)',
     ['identity', 'prompt', 'guard', 'lock', 'face', 'reference', 'beautify', 'preserve', 'consistency', 'edit prompt',
      'subject type', 'animal', 'per subject', 'leak', 'tails', 'extra limbs']),
@@ -768,11 +782,16 @@ const TOPICS = [
   // over the reference, so likeness is looser than Klein or Krea at any denoise
   // setting. This is the narrative counterpart to the zimage.denoise / .steps
   // settings above, which point into the settings-reference chapter instead.
-  action('zimage-engine-overview', 'Z-Image Turbo: a local img2img engine',
-    ['zimage', 'z-image', 'z-image turbo', 'img2img', 'local engine', 'base model',
+  // The topic id stays 'zimage-engine-overview' (ids are stable), but the Guide
+  // anchor follows the chapter heading, which lost "img2img" when the engine gained
+  // its restage graph — it is no longer plain img2img on every shot.
+  action('zimage-engine-overview', 'Z-Image: a local engine without an identity model',
+    ['zimage', 'z-image', 'z-image turbo', 'z-image base', 'img2img', 'restage',
+     'pose', 'body shot', 'local engine', 'base model',
      'identity', 'looser', 'likeness', 'denoise', 'nsfw', 'free', 'gpu',
      'download weights', 'setup', 'comfyui', 'text encoder', 'qwen3', 'vae'],
-    '/settings/engines', 'using-the-app', 'z-image-turbo-a-local-img2img-engine'),
+    '/settings/engines', 'using-the-app',
+    'z-image-a-local-engine-without-an-identity-model'),
   action('action-caption-generate', 'Generate captions',
     ['caption', 'generate', 'joycaption', 'ollama', 'text'],
     '/datasets?section=captions&panel=generate', 'dataset-guide', '3-captions-the-make-or-break-step'),
