@@ -27,6 +27,7 @@ import {
 } from './engineSelection.js';
 import { kreaUnavailableReason, groundingDescription, kreaFramingAdvisory } from '../../utils/kreaEngine.js';
 import { kleinUnavailableReason } from '../../utils/localEngineReason.js';
+import { zimageUnavailableReason } from '../../utils/zimageEngine.js';
 import {
   SUBJECT_TYPES, SUBJECT_TYPE_LABELS, SUBJECT_TYPE_HINTS,
   normalizeSubjectType, framingLabel, defaultPresetKey,
@@ -450,6 +451,7 @@ export default function VariationCatalog({ onGenerate, busy, generating = null, 
   // locally.
   const isKlein = engines.includes('klein');
   const isKrea = engines.includes('krea');
+  const isZimage = engines.includes('zimage');
   const multiEngine = engines.length > 1;
   // 🔞 shots stay exactly as strict as before, only the wording of "local"
   // widened: they exist when EVERY selected engine is local. A local engine
@@ -511,8 +513,9 @@ export default function VariationCatalog({ onGenerate, busy, generating = null, 
   const orAvailable = enabledEngines.includes('openrouter') && caps.engines.openrouter;
   const klAvailable = enabledEngines.includes('klein') && caps.engines.klein;
   const krAvailable = enabledEngines.includes('krea') && caps.engines.krea;
-  const available = { klein: klAvailable, krea: krAvailable, nanobanana: nbAvailable,
-    chatgpt: gptAvailable, openrouter: orAvailable };
+  const zimAvailable = enabledEngines.includes('zimage') && caps.engines.zimage;
+  const available = { klein: klAvailable, krea: krAvailable, zimage: zimAvailable,
+    nanobanana: nbAvailable, chatgpt: gptAvailable, openrouter: orAvailable };
 
   // The persisted selection can name engines that have since been disabled in
   // Settings (or lost their key/backend): drop those instead of trying to
@@ -524,10 +527,10 @@ export default function VariationCatalog({ onGenerate, busy, generating = null, 
     if (usable.length === engines.length) return;
     const first = nbAvailable ? 'nanobanana' : gptAvailable ? 'chatgpt'
       : orAvailable ? 'openrouter' : klAvailable ? 'klein'
-      : krAvailable ? 'krea' : null;
+      : krAvailable ? 'krea' : zimAvailable ? 'zimage' : null;
     setEngines(usable.length ? usable : (first ? [first] : []));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engines, nbAvailable, gptAvailable, orAvailable, klAvailable, krAvailable]);
+  }, [engines, nbAvailable, gptAvailable, orAvailable, klAvailable, krAvailable, zimAvailable]);
   // Effective ChatGPT lane: the subscription (ChatGPT Plus/Pro image quota) vs the
   // pay-per-use API key. Mirrors the backend "auto = subscription when connected".
   const gptSub = caps.chatgpt_subscription || {};
@@ -572,6 +575,14 @@ export default function VariationCatalog({ onGenerate, busy, generating = null, 
     missingNodes: caps.comfyui?.krea_nodes_missing,
     invalidAssets: caps.comfyui?.krea_invalid,
     nodePackInstalled: caps.comfyui?.krea_nodes_installed,
+  });
+  // Z-Image Turbo — core-nodes-only (no custom pack), so one fewer failure mode
+  // than Krea. See utils/zimageEngine.js.
+  const zimageHint = zimAvailable ? null : zimageUnavailableReason({
+    enabledInSettings: enabledEngines.includes('zimage'),
+    comfyuiReachable: !!caps.comfyui?.reachable,
+    missingAssets: caps.comfyui?.zimage_missing,
+    invalidAssets: caps.comfyui?.zimage_invalid,
   });
 
   useEffect(() => {
@@ -934,6 +945,33 @@ export default function VariationCatalog({ onGenerate, busy, generating = null, 
             <a href="#/setup" onClick={(e) => e.stopPropagation()}
               className="text-amber-300 text-[0.625rem] underline decoration-amber-300/50">
               {kreaHint}
+            </a>
+          )} />
+        {/* Z-Image Turbo — the third LOCAL engine. No identity-edit model, so it
+            img2imgs from the reference: faster than Klein/Krea, but likeness is
+            LOOSER — the denoise dial (Settings) trades likeness for prompt-adherence. */}
+        <EngineCard id="zimage" checked={isZimage} available={zimAvailable} generating={generating}
+          onToggle={toggleEngine} share={engineShare('zimage')}
+          icon={<GpuIcon className={`w-9 h-9 shrink-0 ${isZimage ? ENGINE_ACCENTS.zimage.icon : 'text-content-subtle'}`} />}
+          title={<>Z-Image Turbo <span className="font-normal text-content-subtle">· local</span></>}
+          tags={[
+            <span key="free" className="px-1.5 py-px rounded-full bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-[0.625rem]">Free</span>,
+            <span key="gpu" className="px-1.5 py-px rounded-full bg-app/60 border border-border text-content-muted text-[0.625rem]">Your GPU</span>,
+            <span key="nsfw" className="px-1.5 py-px rounded-full bg-app/60 border border-border text-content-muted text-[0.625rem]">NSFW OK</span>,
+          ]}
+          hint={zimAvailable ? (
+            <span className="text-content-subtle text-[0.625rem]">
+              Fast img2img from your reference — looser likeness than Klein or Krea.
+              {localQueuesBehindApi(engines) && (
+                <> <span className={ENGINE_ACCENTS.zimage.text}>
+                  Its {engineShare('zimage')} shot(s) queue on your GPU, one at a time, after the API ones.
+                </span></>
+              )}
+            </span>
+          ) : (
+            <a href="#/setup" onClick={(e) => e.stopPropagation()}
+              className="text-amber-300 text-[0.625rem] underline decoration-amber-300/50">
+              {zimageHint}
             </a>
           )} />
         <EngineCard id="nanobanana" checked={isNB} available={nbAvailable} generating={generating}

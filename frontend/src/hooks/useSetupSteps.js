@@ -44,6 +44,19 @@ function imageStep(caps) {
   }
 }
 
+// Z-Image Turbo needs three weights on disk (base model + Qwen3-4B text encoder +
+// VAE) — same shape as Klein's trio, no recommended-extra concept. Mirrors
+// KLEIN_REQUIRED_ASSETS / KLEIN_ASSET_LABELS / kleinMissingLabels, which now live
+// in their own import-free leaf (utils/kleinAssets.js) and are re-exported above.
+export const ZIMAGE_REQUIRED_ASSETS = ['zimage_model', 'zimage_text_encoder', 'zimage_vae']
+export const ZIMAGE_ASSET_LABELS = {
+  zimage_model: 'Z-Image model', zimage_text_encoder: 'text encoder', zimage_vae: 'VAE',
+}
+export function zimageMissingLabels(zimageMissing) {
+  const m = Array.isArray(zimageMissing) ? zimageMissing : []
+  return ZIMAGE_REQUIRED_ASSETS.filter((a) => m.includes(a)).map((a) => ZIMAGE_ASSET_LABELS[a])
+}
+
 function kleinMissingRequired(c) {
   if (Array.isArray(c.klein_missing)) {
     return c.klein_missing.filter((a) => KLEIN_REQUIRED_ASSETS.includes(a))
@@ -96,6 +109,10 @@ function comfyuiStep(caps) {
   const kleinMissing = Array.isArray(c.klein_missing)
     ? c.klein_missing
     : (derivedHasKlein ? [] : ['klein_model'])
+  // Z-Image Turbo is optional like the Klein recommended LoRA: listed for
+  // download, never gates hasKlein/status. Mirrors kleinMissing/kleinInvalid.
+  const zimageMissing = Array.isArray(c.zimage_missing) ? c.zimage_missing : []
+  const zimageInvalid = Array.isArray(c.zimage_invalid) ? c.zimage_invalid : []
   // Skipped is neutral, not a warning — but only when there's genuinely nothing to
   // show (unreachable). It never overrides a reachable ComfyUI's real status.
   const skipped = !!c.skipped && !c.reachable
@@ -103,7 +120,8 @@ function comfyuiStep(caps) {
   return {
     id: 'comfyui', title: 'ComfyUI — local generation & Test Studio', recommended: false,
     unlocks: ['Klein engine', 'Test Studio'],
-    status, reachable: !!c.reachable, hasKlein, kleinMissing, kleinInvalid, apiUrl: c.api_url || '',
+    status, reachable: !!c.reachable, hasKlein, kleinMissing, kleinInvalid,
+    zimageMissing, zimageInvalid, apiUrl: c.api_url || '',
     skipped,
     // The ONE sentence for why each local engine is dark, identical to the one the
     // generation panel shows — so the two screens can no longer name different
@@ -453,6 +471,9 @@ export const INSTALL_ALL_ACTION_LABELS = {
   krea_text_encoder: 'Krea 2 text encoder',
   krea_vae: 'Krea 2 VAE',
   krea_identity_lora: 'Krea 2 Identity Edit LoRA',
+  zimage_model: 'Z-Image model',
+  zimage_text_encoder: 'Z-Image text encoder',
+  zimage_vae: 'Z-Image VAE',
 }
 
 // The Krea 2 Edit engine, installable in ONE click but deliberately NOT part of
@@ -525,7 +546,9 @@ export function installAllPlan(caps) {
     if (a === 'ollama_model') {
       return !!(o.reachable && !o.vision_model_ready && (o.vision_model || '').trim())
     }
-    // klein_* — only into a validated ComfyUI tree.
+    // klein_* — only into a validated ComfyUI tree. Z-Image (like Krea) is a
+    // secondary engine, deliberately absent from "Install everything": it installs
+    // on intent instead (per-asset rows below + auto-download when generated).
     return !!cu.dir_valid && kleinMissing.includes(a)
   }
   return INSTALL_ALL_ORDER.filter(needed)
@@ -568,6 +591,8 @@ export function installCatalog(caps) {
   const kreaNodesPresent = !!cu.krea_nodes_installed
     || !!(cu.reachable && !(Array.isArray(cu.krea_nodes_missing) && cu.krea_nodes_missing.length))
   const kreaRestart = kreaNeedsComfyuiRestart(c)
+  const zimageMissing = Array.isArray(cu.zimage_missing) ? cu.zimage_missing : []
+  const zimageHint = 'Point the app at a valid ComfyUI folder first (the ComfyUI step).'
   const item = (action, present, available, hint) => {
     const bad = brokenBy[action]
     // A THIRD state, like the Krea node pack's: neither ✓ (it cannot load) nor a
@@ -620,5 +645,9 @@ export function installCatalog(caps) {
     },
     ...['krea_model', 'krea_text_encoder', 'krea_vae', 'krea_identity_lora'].map(
       (a) => item(a, dirValid && !kreaMissing.includes(a), dirValid, kleinHint)),
+    // Z-Image Turbo — per-asset rows so each of the three weights can be installed
+    // or repaired on its own. Like Krea, it stays out of "Install everything".
+    ...['zimage_model', 'zimage_text_encoder', 'zimage_vae'].map(
+      (a) => item(a, dirValid && !zimageMissing.includes(a), dirValid, zimageHint)),
   ]
 }
