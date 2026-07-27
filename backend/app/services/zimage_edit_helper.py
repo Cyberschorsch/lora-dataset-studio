@@ -232,3 +232,51 @@ def preflight():
     missing = zimage_missing_assets()
     if missing:
         raise ZImageModelsMissing(missing)
+
+
+
+def build_workflow(source_image, prompt, *, unet, clip, vae, seed,
+                   steps=8, denoise=0.65, filename_prefix='zimage_edit'):
+    """ComfyUI API-format img2img graph, built from ZImage_bigLove_ZT3_optimal.json
+    (the advanced-sampler form Z-Image uses) plus a LoadImage->VAEEncode init
+    latent. Pure function of its arguments — no cfg read, no disk — so a test can
+    assert the exact wiring without a ComfyUI. cfg is pinned to 1.0: Z-Image Turbo
+    is guidance-distilled and ignores anything else. The reference is pre-sized by
+    the caller (enqueue), so no scale node is needed here."""
+    steps = 8 if steps is None else max(1, int(steps))
+    denoise = 0.65 if denoise is None else float(denoise)
+    return {
+        '1': {'class_type': 'UNETLoader',
+              'inputs': {'unet_name': unet, 'weight_dtype': 'default'},
+              '_meta': {'title': 'Z-Image Turbo base model'}},
+        '2': {'class_type': 'CLIPLoader',
+              'inputs': {'clip_name': clip, 'type': 'lumina2'},
+              '_meta': {'title': 'Qwen3-4B text encoder'}},
+        '3': {'class_type': 'VAELoader', 'inputs': {'vae_name': vae}},
+        '4': {'class_type': 'CLIPTextEncode',
+              'inputs': {'text': prompt, 'clip': ['2', 0]},
+              '_meta': {'title': 'Positive'}},
+        '5': {'class_type': 'CLIPTextEncode',
+              'inputs': {'text': '', 'clip': ['2', 0]},
+              '_meta': {'title': 'Negative (empty)'}},
+        '6': {'class_type': 'LoadImage', 'inputs': {'image': source_image}},
+        '7': {'class_type': 'VAEEncode',
+              'inputs': {'pixels': ['6', 0], 'vae': ['3', 0]},
+              '_meta': {'title': 'Init latent (img2img)'}},
+        '8': {'class_type': 'BasicScheduler',
+              'inputs': {'scheduler': 'simple', 'steps': steps,
+                         'denoise': denoise, 'model': ['1', 0]}},
+        '9': {'class_type': 'KSamplerSelect', 'inputs': {'sampler_name': 'euler'}},
+        '10': {'class_type': 'CFGGuider',
+               'inputs': {'cfg': 1.0, 'model': ['1', 0],
+                          'positive': ['4', 0], 'negative': ['5', 0]}},
+        '11': {'class_type': 'RandomNoise', 'inputs': {'noise_seed': seed}},
+        '12': {'class_type': 'SamplerCustomAdvanced',
+               'inputs': {'noise': ['11', 0], 'guider': ['10', 0],
+                          'sampler': ['9', 0], 'sigmas': ['8', 0],
+                          'latent_image': ['7', 0]}},
+        '13': {'class_type': 'VAEDecode',
+               'inputs': {'samples': ['12', 0], 'vae': ['3', 0]}},
+        '14': {'class_type': 'SaveImage',
+               'inputs': {'filename_prefix': filename_prefix, 'images': ['13', 0]}},
+    }
