@@ -27,6 +27,12 @@ import os
 from .. import config as cfg
 from . import comfy_model_paths
 
+import random
+import shutil
+import uuid
+
+from ..job_queue import queue_manager
+
 logger = logging.getLogger(__name__)
 
 ENGINE_ID = 'zimage'
@@ -280,3 +286,95 @@ def build_workflow(source_image, prompt, *, unet, clip, vae, seed,
         '14': {'class_type': 'SaveImage',
                'inputs': {'filename_prefix': filename_prefix, 'images': ['13', 0]}},
     }
+
+
+MAX_OUTPUT_MP = 1.5
+_LATENT_MULTIPLE = 16
+
+
+def fit_output_size(width, height, max_mp=MAX_OUTPUT_MP):
+    """(w, h) keeping the source aspect ratio, scaled to at most `max_mp`
+    megapixels and snapped to a multiple of 16. Never upscales a small source."""
+    try:
+        w, h = int(width), int(height)
+    except (TypeError, ValueError):
+        w = h = 0
+    if w <= 0 or h <= 0:
+        return 1024, 1024
+    budget = max(0.1, float(max_mp)) * 1_000_000
+    if w * h > budget:
+        scale = (budget / (w * h)) ** 0.5
+        w, h = w * scale, h * scale
+    snap = lambda v: max(_LATENT_MULTIPLE, int(round(v / _LATENT_MULTIPLE)) * _LATENT_MULTIPLE)
+    return snap(w), snap(h)
+
+
+def _clamp(value, lo, hi, default):
+    try:
+        return max(lo, min(hi, float(value)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _denoise():
+    """THE identity<->prompt dial: how much noise img2img adds over the reference.
+    LOW = sticks to the reference (stronger likeness, less variety); HIGH = follows
+    the prompt (looser likeness). Default 0.65 (the krea2_turbo_img2img value)."""
+    return _clamp(cfg.get('zimage.denoise'), 0.1, 1.0, 0.65)
+
+
+def _steps():
+    return int(_clamp(cfg.get('zimage.steps'), 1, 50, 8.0))
+
+
+def _comfy_input_dir() -> str:
+    d = cfg.comfyui_dir('input')
+    if not d:
+        raise RuntimeError('ComfyUI is not configured')
+    return str(d)
+
+
+def enqueue_zimage_edit(user_id, source_filename, edit_prompt, source_path=None,
+                        extra_metadata=None, zimage_model=None):
+    """Pre-size the reference, copy it into ComfyUI's input folder, build the
+    img2img graph against what is ACTUALLY installed, and enqueue it. Returns the
+    app job_id. Raises ZImageModelsMissing (via preflight) when an asset is absent,
+    ValueError on a missing source, RuntimeError when ComfyUI isn't configured."""
+    from PIL import Image
+    if source_path is None:
+        out_dir = cfg.comfyui_dir('output')
+        if not out_dir:
+            raise RuntimeError('ComfyUI is not configured')
+        source_path = os.path.join(str(out_dir), source_filename)
+    if not os.path.exists(source_path):
+        raise ValueError(f'source image not found: {source_filename}')
+
+    preflight()
+    unet = resolve_zimage_unet(zimage_model)
+    clip = resolve_zimage_text_encoder()
+    vae = resolve_zimage_vae()
+
+    comfy_input_dir = _comfy_input_dir()
+    uid = uuid.uuid4().hex[:8]
+    comfy_input = f'zimage_source_{uid}.png'
+    with Image.open(source_path) as im:
+        im = im.convert('RGB')
+        w, h = fit_output_size(*im.size)
+        im.resize((w, h), Image.LANCZOS).save(os.path.join(comfy_input_dir, comfy_input))
+
+    workflow = build_workflow(
+        comfy_input, edit_prompt, unet=unet, clip=clip, vae=vae,
+        seed=random.randint(0, 2 ** 64 - 1), steps=_steps(), denoise=_denoise(),
+        # UNIQUE prefix per job: SaveImage numbers from what is in the output
+        # folder and the app moves each result out right after completion, so a
+        # shared prefix would re-issue the same name (the Klein tile-dup bug).
+        filename_prefix=f'{user_id}_DatasetZImage_{uid}')
+
+    job_id = str(uuid.uuid4())
+    meta = {'model_name': 'zimage_turbo_dataset'}
+    if extra_metadata:
+        meta.update(extra_metadata)
+    queue_manager.add_job(job_type='image', user_id=str(user_id),
+                          workflow_data=workflow, prompt=edit_prompt,
+                          job_id=job_id, metadata=meta)
+    return job_id
