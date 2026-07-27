@@ -28,6 +28,7 @@ const ENGINE_OPTIONS = [
   { id: 'openrouter', label: 'OpenRouter' },
   { id: 'klein', label: 'Klein (ComfyUI, local)' },
   { id: 'krea', label: 'Krea 2 Edit (ComfyUI, local)' },
+  { id: 'zimage', label: 'Z-Image Turbo (ComfyUI, local)' },
 ]
 
 /* Optional generation-LoRA PRESETS for the local Klein engine (Idea by
@@ -310,6 +311,85 @@ function KreaCard({ config, setField }) {
           Path relative to ComfyUI&rsquo;s models/loras. If the file isn&rsquo;t there under this
           name, the app searches your LoRA folders for a krea2_identity_edit file, so a
           renamed download still works.
+        </p>
+      </div>
+    </Card>
+  )
+}
+
+const ZIMAGE_STEPS_MAX = 50   // mirrors zimage_edit_helper _steps() clamp
+
+/* Z-Image Turbo — the third LOCAL engine. It has no identity-edit model, so it
+   generates by img2img from the reference and likeness is LOOSER than Klein/Krea;
+   `denoise` is the likeness <-> prompt dial. The base-model field is
+   BLANK-MEANS-AUTO, same as Krea's: the resolver finds a Z-Image build by folder
+   convention, and the field only exists for pinning a specific file. */
+function ZImageCard({ config, setField }) {
+  const zimage = config.zimage || {}
+  const denoise = Number(zimage.denoise ?? 0.65)
+  return (
+    <Card
+      id="zimage-engine"
+      title="Z-Image Turbo (local)"
+      help="The third local engine: fast Z-Image Turbo img2img straight from your reference photo. It has no identity-edit model, so likeness is LOOSER than Klein or Krea — the denoise dial trades likeness against prompt-adherence. Free on your own GPU, NSFW-capable. It needs three model files (base model, Qwen3-4B text encoder, VAE); the Setup step can download them, and the engine card in the workspace names whatever is still missing."
+    >
+      <div className="sm:max-w-md">
+        <label htmlFor="zimage-denoise" className="block text-xs font-medium text-content">
+          Reference denoise ({denoise.toFixed(2)})
+        </label>
+        <input
+          id="zimage-denoise"
+          type="range"
+          min={0.1}
+          max={1}
+          step={0.05}
+          value={denoise}
+          onChange={(e) => setField('zimage', 'denoise', Number(e.target.value))}
+          className="mt-1 w-full accent-teal-500"
+        />
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
+          How much the model repaints over your reference. <b>Lower</b> = sticks to the
+          reference (stronger likeness, less variety). <b>Higher</b> = follows the prompt
+          (looser likeness). 0.65 is the balanced default. Z-Image is a base model, not an
+          edit model, so identity is looser than Klein or Krea at any setting.
+        </p>
+      </div>
+
+      <div className="mt-3 sm:max-w-md">
+        <label htmlFor="zimage-steps" className="block text-xs font-medium text-content">
+          Sampler steps
+        </label>
+        <input
+          id="zimage-steps"
+          type="number"
+          min={1}
+          max={ZIMAGE_STEPS_MAX}
+          step={1}
+          value={zimage.steps ?? 8}
+          onChange={(e) => setField('zimage', 'steps',
+            e.target.value === '' ? 8 : Number(e.target.value))}
+          className={INPUT_CLASS}
+        />
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
+          8 is what Z-Image Turbo is distilled for. More is slower and rarely better.
+        </p>
+      </div>
+
+      <div className="mt-3 sm:max-w-md">
+        <label htmlFor="zimage-base-model" className="block text-xs font-medium text-content">
+          Base model file (optional)
+        </label>
+        <input
+          id="zimage-base-model"
+          type="text"
+          value={zimage.base_model ?? ''}
+          onChange={(e) => setField('zimage', 'base_model', e.target.value)}
+          placeholder="auto — first Z-Image build found"
+          className={INPUT_CLASS}
+        />
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
+          Blank = auto: the first Z-Image build under a <code>z image</code> folder. Set a
+          filename (e.g. a smaller fp8 build you dropped in) to pin it.
         </p>
       </div>
     </Card>
@@ -838,6 +918,8 @@ export default function EnginesSection(props) {
       <KleinLorasCard config={config} setField={setField} />
 
       <KreaCard config={config} setField={setField} />
+
+      <ZImageCard config={config} setField={setField} />
 
       <IdentityPromptsCard config={config} setField={setField} promptDefaults={props.promptDefaults}
         promptDefaultsBySubject={props.promptDefaultsBySubject}

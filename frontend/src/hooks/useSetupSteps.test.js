@@ -82,6 +82,25 @@ test('legacy payload without klein_missing falls back to the UNET scan', () => {
   assert.deepEqual(noUnet.kleinMissing, ['klein_model']);
 });
 
+test('comfy step lists missing Z-Image weights for download', () => {
+  const step = comfyStep({
+    reachable: true, klein_missing: [],
+    zimage_missing: ['zimage_model', 'zimage_vae'],
+  });
+  assert.deepEqual(step.zimageMissing, ['zimage_model', 'zimage_vae']);
+});
+
+test('Z-Image missing weights do not gate the ComfyUI step ready/green', () => {
+  // Z-Image is optional like the recommended Klein LoRA: listed for download,
+  // never blocks the step from going green once Klein itself is complete.
+  const step = comfyStep({
+    reachable: true, klein_missing: [],
+    zimage_missing: ['zimage_model', 'zimage_text_encoder', 'zimage_vae'],
+  });
+  assert.equal(step.hasKlein, true);
+  assert.equal(step.status, 'ready');
+});
+
 // --- Conscious "continue without ComfyUI" skip (Setup Volet 2) --------------
 
 test('skipped ComfyUI (flag set, unreachable) renders a neutral "skipped" status', () => {
@@ -207,9 +226,14 @@ test('installAllPlan full order groups ML -> vision model -> Klein', () => {
     face_scoring: false, masks: false, watermark_inpaint: false,
     ollama: { reachable: true, vision_model_ready: false, vision_model: 'm' },
     comfyui: { dir_valid: true,
-      klein_missing: ['klein_model', 'klein_text_encoder', 'klein_vae', 'klein_lora'] },
+      klein_missing: ['klein_model', 'klein_text_encoder', 'klein_vae', 'klein_lora'],
+      zimage_missing: ['zimage_model', 'zimage_text_encoder', 'zimage_vae'] },
   };
-  assert.deepEqual(installAllPlan(caps), INSTALL_ALL_ORDER);
+  // Z-Image (like Krea) is a secondary engine: it is deliberately NOT part of
+  // "Install everything", so its weights never appear even when all are missing.
+  const plan = installAllPlan(caps);
+  assert.deepEqual(plan, INSTALL_ALL_ORDER);
+  assert.ok(!plan.some((a) => a.startsWith('zimage_')));
 });
 
 // --- installCatalog (the full one-by-one install/reinstall menu) -------------
@@ -220,14 +244,15 @@ const byAction = (cat) => Object.fromEntries(cat.map((c) => [c.action, c]));
 test('installCatalog lists every app-installable component, present + available', () => {
   const cat = byAction(installCatalog(fullCaps()));
   // Every component the app can install itself (never ComfyUI/Ollama/API keys).
-  // The Krea 2 Edit rows land here too — the engine's ONE-CLICK install is its own
-  // card, this menu is the per-piece repair path each of them also deserves.
+  // The Krea 2 Edit and Z-Image rows land here too — each engine's install is its
+  // own path, this menu is the per-piece repair each of their weights also deserves.
   assert.deepEqual(
     installCatalog(fullCaps()).map((c) => c.action),
     ['face_scoring', 'masks', 'watermark_inpaint', 'ollama_model',
       'klein_model', 'klein_text_encoder', 'klein_vae', 'klein_lora',
       'krea_nodes', 'krea_model', 'krea_text_encoder', 'krea_vae',
-      'krea_identity_lora'],
+      'krea_identity_lora',
+      'zimage_model', 'zimage_text_encoder', 'zimage_vae'],
   );
   // Everything installed in fullCaps -> every tile present, and available to REINSTALL.
   for (const c of Object.values(cat)) {
@@ -239,7 +264,7 @@ test('installCatalog lists every app-installable component, present + available'
 test('installCatalog stays fully available for reinstall when all is green', () => {
   // The menu must never collapse once installed — each item can always be repaired.
   const cat = installCatalog(fullCaps());
-  assert.ok(cat.length === 13 && cat.every((c) => c.available));
+  assert.ok(cat.length === 16 && cat.every((c) => c.available));
 });
 
 test('installCatalog marks missing ML extras not-present but still available', () => {
