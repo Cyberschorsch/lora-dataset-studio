@@ -178,7 +178,31 @@ _KREA_DOWNLOADS = {
 # Every streamed model download, whatever engine it belongs to. The worker,
 # destination resolution, disk precondition and extra_model_paths de-duplication
 # are engine-agnostic; only the catalog entries differ.
-_MODEL_DOWNLOADS = {**_KLEIN_DOWNLOADS, **_KREA_DOWNLOADS}
+# Z-Image Turbo — public, non-gated Comfy-Org repackage (Apache-2.0, verified
+# 2026-07-27). Default UNET is bf16 (universal quality; ~14-16 GB VRAM). Users on
+# less VRAM drop an fp8/gguf build into the same folder and pick it in the engine.
+# The VAE is RENAMED on download: the upstream file is 'ae.safetensors' — the SAME
+# name as Flux's VAE — so writing it verbatim would clobber/confuse the resolver.
+_ZIMAGE_DOWNLOADS = {
+    'zimage_model': {
+        'url': 'https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors',
+        'dest': ('diffusion_models', 'z image', 'z_image_turbo_bf16.safetensors'),
+        'min_free_gb': 15, 'gated': False, 'min_bytes': 1024 ** 3,
+        'license_url': 'https://huggingface.co/Comfy-Org/z_image_turbo',
+    },
+    'zimage_text_encoder': {
+        'url': 'https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors',
+        'dest': ('text_encoders', 'qwen_3_4b.safetensors'),
+        'min_free_gb': 10, 'gated': False, 'min_bytes': 256 * 1024 ** 2,
+    },
+    'zimage_vae': {
+        'url': 'https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors',
+        'dest': ('vae', 'z_image_ae.safetensors'),
+        'min_free_gb': 1, 'gated': False, 'min_bytes': 8 * 1024 ** 2,
+    },
+}
+
+_MODEL_DOWNLOADS = {**_KLEIN_DOWNLOADS, **_KREA_DOWNLOADS, **_ZIMAGE_DOWNLOADS}
 
 # Custom-node packs the app can install itself. THE ONLY ONE TODAY — and the
 # first git-cloned dependency this app installs at all, so the rules are written
