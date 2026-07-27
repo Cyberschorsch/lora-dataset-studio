@@ -93,7 +93,7 @@ DEFAULTS = {
     # of which engines the app offered the last time the user picked, written by
     # save_config; [] means "no ledger yet".
     'engines': {'default': 'chatgpt',
-                'enabled': ['nanobanana', 'chatgpt', 'openrouter', 'klein', 'krea'],
+                'enabled': ['nanobanana', 'chatgpt', 'openrouter', 'klein', 'krea', 'zimage'],
                 'known': [],
                 # chatgpt_auth: 'auto' = subscription when connected, else API key.
                 'chatgpt_auth': 'auto',            # auto|api|subscription
@@ -161,6 +161,10 @@ DEFAULTS = {
     #     masked edge to edge at exactly 0.0 divides by zero -> NaN loss -> dead run.
     'face_mask': {'expand': 2.0, 'min_weight': 0.1},
     # Cloud GPU training (vast.ai). Everything has a sane default: the only
+    # Z-Image Turbo local engine (img2img). denoise is THE identity<->prompt dial
+    # (low = sticks to the reference, high = follows the prompt); base_model is the
+    # optional pinned UNET basename (blank = auto-resolve the first Z-Image build).
+    'zimage': {'denoise': 0.65, 'steps': 8, 'base_model': ''},
     # required user input is the VAST_API_KEY secret. Values here are knobs
     # for power users / for adjusting after the real-world smoke test.
     'cloud': {
