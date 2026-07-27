@@ -1477,6 +1477,10 @@ def probe(force=False) -> dict:
             'krea_invalid': krea_invalid,
             'zimage_missing': zimage_missing,
             'zimage_invalid': zimage_invalid,
+            # The OPTIONAL Z-Image BASE checkpoint. Presence, not absence: it is a
+            # second checkpoint rather than a missing dependency, so it never joins
+            # zimage_missing and never darkens engines.zimage.
+            'zimage_base_present': _zih.zimage_base_installed(),
             # Klein assets PRESENT on disk but not real, loadable weights:
             # [{asset, filename, verdict, blocking, reason}]. Distinct from
             # klein_missing (the file exists, it just can't load) — drives the Setup

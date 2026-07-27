@@ -200,6 +200,18 @@ _ZIMAGE_DOWNLOADS = {
         'dest': ('vae', 'z_image_ae.safetensors'),
         'min_free_gb': 1, 'gated': False, 'min_bytes': 8 * 1024 ** 2,
     },
+    # OPTIONAL, and deliberately NOT in ZIMAGE_ASSETS/ZIMAGE_REQUIRED: making it
+    # required would turn every existing install's readiness probe red. Z-Image BASE
+    # is the non-distilled checkpoint (Comfy-Org/z_image, public, verified
+    # 2026-07-27, 12.3 GB) — it is the one that takes a real cfg and a real negative
+    # prompt, which is what buys prompt adherence on restaged shots. Slower: ~28
+    # steps AND two model evals per step.
+    'zimage_base_model': {
+        'url': 'https://huggingface.co/Comfy-Org/z_image/resolve/main/split_files/diffusion_models/z_image_bf16.safetensors',
+        'dest': ('diffusion_models', 'z image', 'z_image_bf16.safetensors'),
+        'min_free_gb': 15, 'gated': False, 'min_bytes': 1024 ** 3,
+        'license_url': 'https://huggingface.co/Comfy-Org/z_image',
+    },
 }
 
 _MODEL_DOWNLOADS = {**_KLEIN_DOWNLOADS, **_KREA_DOWNLOADS, **_ZIMAGE_DOWNLOADS}

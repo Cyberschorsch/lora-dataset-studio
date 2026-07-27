@@ -3,15 +3,29 @@ from app import setup_installer as si
 
 def test_zimage_download_specs_public_and_renamed_vae():
     d = si._ZIMAGE_DOWNLOADS
-    assert set(d) == {'zimage_model', 'zimage_text_encoder', 'zimage_vae'}
+    assert set(d) == {'zimage_model', 'zimage_text_encoder', 'zimage_vae',
+                      'zimage_base_model'}
     assert d['zimage_model']['url'].startswith('https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/')
     for spec in d.values():
         assert spec['gated'] is False
     assert si._ZIMAGE_DOWNLOADS['zimage_vae']['dest'][-1] == 'z_image_ae.safetensors'
 
 
+def test_zimage_base_model_is_optional_and_from_the_base_repo():
+    """Base is the non-distilled checkpoint — a different repo from Turbo, and it
+    lands beside it in the same 'z image' folder so the resolver finds either."""
+    spec = si._ZIMAGE_DOWNLOADS['zimage_base_model']
+    assert spec['url'].startswith('https://huggingface.co/Comfy-Org/z_image/resolve/main/')
+    assert spec['dest'] == ('diffusion_models', 'z image', 'z_image_bf16.safetensors')
+    # It must NOT be a required asset: every existing install would go red.
+    from app.services import zimage_edit_helper as z
+    assert 'zimage_base_model' not in z.ZIMAGE_REQUIRED
+    assert 'zimage_base_model' not in z.ZIMAGE_ASSETS
+
+
 def test_actions_registered_with_workers():
-    for a in ('zimage_model', 'zimage_text_encoder', 'zimage_vae'):
+    for a in ('zimage_model', 'zimage_text_encoder', 'zimage_vae',
+              'zimage_base_model'):
         assert a in si.INSTALL_ACTIONS
         assert a in si._WORKERS
 

@@ -504,6 +504,7 @@ export const INSTALL_ALL_ACTION_LABELS = {
   zimage_model: 'Z-Image model',
   zimage_text_encoder: 'Z-Image text encoder',
   zimage_vae: 'Z-Image VAE',
+  zimage_base_model: 'Z-Image Base model (optional)',
 }
 
 // The Krea 2 Edit engine, installable in ONE click but deliberately NOT part of
@@ -622,6 +623,7 @@ export function installCatalog(caps) {
     || !!(cu.reachable && !(Array.isArray(cu.krea_nodes_missing) && cu.krea_nodes_missing.length))
   const kreaRestart = kreaNeedsComfyuiRestart(c)
   const zimageMissing = Array.isArray(cu.zimage_missing) ? cu.zimage_missing : []
+  const zimageBasePresent = !!cu.zimage_base_present
   const zimageHint = 'Point the app at a valid ComfyUI folder first (the ComfyUI step).'
   const item = (action, present, available, hint) => {
     const bad = brokenBy[action]
@@ -675,9 +677,12 @@ export function installCatalog(caps) {
     },
     ...['krea_model', 'krea_text_encoder', 'krea_vae', 'krea_identity_lora'].map(
       (a) => item(a, dirValid && !kreaMissing.includes(a), dirValid, kleinHint)),
-    // Z-Image Turbo — per-asset rows so each of the three weights can be installed
-    // or repaired on its own. Like Krea, it stays out of "Install everything".
+    // Z-Image — per-asset rows so each of the three weights can be installed or
+    // repaired on its own. Like Krea, it stays out of "Install everything".
     ...['zimage_model', 'zimage_text_encoder', 'zimage_vae'].map(
       (a) => item(a, dirValid && !zimageMissing.includes(a), dirValid, zimageHint)),
+    // The Base checkpoint is OPTIONAL and reported by PRESENCE, not absence — it is
+    // a second checkpoint, not a missing dependency, so it never joins zimageMissing.
+    item('zimage_base_model', dirValid && zimageBasePresent, dirValid, zimageHint),
   ]
 }

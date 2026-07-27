@@ -57,6 +57,7 @@ from .face_variations import (CAPTION_PROMPT, CAPTION_PROMPT_BOORU,
                               drop_identity_sentences, drop_identity_tags,
                               is_nsfw_label, prompt_by_label, wrap_variation,
                               wrap_variation_klein, wrap_variation_krea, wrap_variation_zimage,
+                              zimage_negative,
                               get_identity_prompt,
                               normalize_subject_type,
                               KLEIN_IMAGE_IMPROVE_PROMPT)
@@ -7782,6 +7783,14 @@ def generate_variations_zimage(user_id, dataset_id, variations, multiplier, zima
                             subject_type=subject_type_of(ds),
                             label=v.get('label') or ''),
                         zimage_model=zimage_model,
+                        # The shot's own geometry. Z-Image is a plain base model,
+                        # so unlike Krea it CAN render at the shot's aspect — and
+                        # must, since its reference is the square head crop.
+                        framing=v.get('framing'),
+                        aspect=aspect_for_label(v.get('label'), v.get('framing')),
+                        full_frame_path=(_ref_crop_source_path(ds)
+                                         if ds.ref_original_filename else None),
+                        negative_prompt=zimage_negative(subject_type_of(ds)),
                         extra_metadata={'is_dataset': True, 'dataset_id': dataset_id,
                                         'variation_label': v.get('label')})
                 except Exception:
@@ -8416,6 +8425,13 @@ def regenerate_image(user_id, image_id, lora_strength=None, prompt=None, app=Non
                 suffix=dataset_prompt_suffix(ds, img.framing),
                 subject_type=subject_type_of(ds),
                 label=img.variation_label or ''),
+            # Legacy rows carry framing=NULL, which plans a plain close-up — the
+            # pre-graph-family behaviour, unchanged.
+            framing=img.framing,
+            aspect=aspect_for_label(img.variation_label, img.framing),
+            full_frame_path=(_ref_crop_source_path(ds)
+                             if ds.ref_original_filename else None),
+            negative_prompt=zimage_negative(subject_type_of(ds)),
             extra_metadata={'is_dataset': True, 'dataset_id': img.dataset_id,
                             'variation_label': img.variation_label})
     else:

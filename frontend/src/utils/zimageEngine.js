@@ -39,12 +39,21 @@ export function zimageUnavailableReason({
   return null;
 }
 
-/** What the denoise dial currently means, in one short phrase. Img2img: LOW keeps
- *  the reference, HIGH follows the prompt. */
+/** What the denoise dial currently means, in one short phrase. It drives BOTH graph
+ *  shapes — the sampler denoise on close-ups, and how much of the held head is
+ *  repainted on restaged shots — so the wording stays about likeness, not repaint. */
 export function denoiseDescription(v) {
   const n = Number(v);
   if (!Number.isFinite(n)) return 'default (0.75)';
   if (n <= 0.55) return `${n} · sticks to the reference, strong likeness, less variety`;
   if (n < 0.85) return `${n} · follows the prompt with usable likeness (recommended)`;
   return `${n} · strongly follows the prompt, likeness drifts`;
+}
+
+/** Turbo vs Base, in one short phrase. Turbo is guidance-distilled (cfg pinned to
+ *  1.0, negative prompt inert); Base takes real guidance and is much slower. */
+export function variantDescription(v) {
+  if (v === 'turbo') return 'Turbo · 8 steps, no guidance, fastest';
+  if (v === 'base') return 'Base · ~28 steps, real guidance and negative prompt, much slower';
+  return 'Auto · detected from the filename, falls back to Turbo';
 }
