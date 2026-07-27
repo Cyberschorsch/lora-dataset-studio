@@ -62,3 +62,32 @@ def test_missing_assets_lists_absent_keys(tmp_path, monkeypatch):
     monkeypatch.setattr(z.comfy_model_paths, 'search_roots', roots)
     monkeypatch.setattr(z.cfg, 'get', lambda *a, **k: None)
     assert z.zimage_missing_assets() == ['zimage_model', 'zimage_text_encoder', 'zimage_vae']
+
+
+
+def test_preflight_raises_when_assets_absent(tmp_path, monkeypatch):
+    import pytest
+    def roots(comfy_type):
+        return [os.path.join(str(tmp_path), 'models', comfy_type)]
+    monkeypatch.setattr(z.comfy_model_paths, 'search_roots', roots)
+    monkeypatch.setattr(z.cfg, 'get', lambda *a, **k: None)
+    with pytest.raises(z.ZImageModelsMissing) as ei:
+        z.preflight()
+    assert 'zimage_model' in ei.value.missing
+
+
+def test_invalid_assets_flags_html_page(tmp_path, monkeypatch):
+    root = str(tmp_path)
+
+    def roots(comfy_type):
+        return [os.path.join(root, 'models', comfy_type)]
+    monkeypatch.setattr(z.comfy_model_paths, 'search_roots', roots)
+    monkeypatch.setattr(z.cfg, 'get', lambda *a, **k: None)
+    _mk(root, 'diffusion_models', 'z image/z_image_turbo_bf16.safetensors')
+
+    import app.services.model_integrity as mi
+    monkeypatch.setattr(mi, 'validate_model_file', lambda path, min_bytes=None: {
+        'ok': False, 'filename': os.path.basename(path), 'verdict': 'html_or_text',
+        'blocking': True, 'reason': 'looks like an HTML page'})
+    out = z.zimage_invalid_assets()
+    assert out and out[0]['asset'] == 'zimage_model' and out[0]['blocking'] is True
