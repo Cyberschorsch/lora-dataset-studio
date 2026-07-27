@@ -164,3 +164,71 @@ def zimage_missing_assets():
     if not resolve_zimage_vae():
         missing.append('zimage_vae')
     return missing
+
+
+
+class ZImageModelsMissing(Exception):
+    """A Z-Image asset (base model / text encoder / VAE) is not on disk, so no
+    valid job can be built. Raised BEFORE any row or job is created so the route
+    answers ONE actionable 409. `.missing` = asset keys (subset of ZIMAGE_REQUIRED).
+    Core-nodes-only engine, so there is no missing-nodes list."""
+
+    def __init__(self, missing):
+        self.missing = list(missing or [])
+        super().__init__('Z-Image assets missing: ' + ', '.join(self.missing))
+
+
+# Advisory floors, deliberately far under the real sizes so a legitimate file
+# can never trip them; the structural cases (HTML page, truncation) need no floor.
+ZIMAGE_MIN_BYTES = {
+    'zimage_model': 1024 ** 3,               # 1 GB   (real bf16 ≈ 12 GB)
+    'zimage_text_encoder': 256 * 1024 ** 2,  # 256 MB (real ≈ 8 GB)
+    'zimage_vae': 8 * 1024 ** 2,             # 8 MB   (real ≈ 335 MB)
+}
+
+
+def _abs_under_roots(comfy_type, rel_name):
+    if not rel_name:
+        return None
+    for root in comfy_model_paths.search_roots(comfy_type):
+        cand = os.path.join(root, rel_name)
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _zimage_asset_paths():
+    """{ZIMAGE_ASSETS key: absolute path} for each asset PRESENT on disk."""
+    paths = {}
+    for key, comfy_type, rel in (
+            ('zimage_model', 'diffusion_models', resolve_zimage_unet()),
+            ('zimage_text_encoder', 'text_encoders', resolve_zimage_text_encoder()),
+            ('zimage_vae', 'vae', resolve_zimage_vae())):
+        p = _abs_under_roots(comfy_type, rel)
+        if p:
+            paths[key] = p
+    return paths
+
+
+def zimage_invalid_assets():
+    """Z-Image assets on disk under the resolved name but NOT real weights (HTML
+    gate page, truncated, tiny stub). Same [{asset, filename, verdict, blocking,
+    reason}] shape as klein_invalid_assets, so one banner covers all engines."""
+    from . import model_integrity
+    out = []
+    for asset, path in _zimage_asset_paths().items():
+        res = model_integrity.validate_model_file(path, min_bytes=ZIMAGE_MIN_BYTES.get(asset))
+        if res['ok']:
+            continue
+        out.append({'asset': asset, 'filename': res['filename'],
+                    'verdict': res['verdict'], 'blocking': res['blocking'],
+                    'reason': res['reason']})
+    return out
+
+
+def preflight():
+    """Raise ZImageModelsMissing when the engine cannot run (any required asset
+    absent). Present-but-invalid is surfaced separately by the readiness probe."""
+    missing = zimage_missing_assets()
+    if missing:
+        raise ZImageModelsMissing(missing)
