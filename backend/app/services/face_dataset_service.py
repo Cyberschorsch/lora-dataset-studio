@@ -3388,6 +3388,9 @@ def _preflight_local_reference_edit(ds, engine):
     if engine == KREA_ENGINE:
         from . import krea_edit_helper as helper
         helper.preflight()
+    elif engine == ZIMAGE_ENGINE:
+        from . import zimage_edit_helper as _zih
+        _zih.preflight()
     # Klein's complete admission check intentionally lives in enqueue_klein_edit;
     # all local enqueues finish before any paid API thread is started below.
 
@@ -3530,7 +3533,12 @@ def start_reference_edit(app, user_id, dataset_id, engine, prompt,
 #: engine cannot be added without deciding what it does with the extra refs. The
 #: values are mirrored in frontend EDIT_REF_SUPPORT (contract-tested), because
 #: the UI has to say this at pick time, not discover it as a silent drop.
-LOCAL_EDIT_REF_SUPPORT = {'klein': 'dataset_only', 'krea': 'primary_only'}
+#: Z-Image is 'primary_only' for the same reason as Krea, one step stronger: its
+#: graph takes a SINGLE init image (enqueue_zimage_edit's source_filename) and has
+#: no reference-conditioning channel at all, so there is nowhere for an extra angle
+#: to go.
+LOCAL_EDIT_REF_SUPPORT = {'klein': 'dataset_only', 'krea': 'primary_only',
+                          'zimage': 'primary_only'}
 
 
 def _enqueue_local_reference_edit(user_id, dataset_id, ds, engine, prompt, token,
@@ -3554,6 +3562,14 @@ def _enqueue_local_reference_edit(user_id, dataset_id, ds, engine, prompt, token
             job_id = helper.enqueue_krea_edit(
                 user_id=str(user_id), source_filename=os.path.basename(ref_path),
                 source_path=ref_path, edit_prompt=prompt, extra_metadata=meta)
+        elif engine == ZIMAGE_ENGINE:
+            # No framing/aspect on purpose: a reference edit is a close-up pass over
+            # the reference itself, so it plans the `close` graph. Restaging here
+            # would hand back a different composition than the one being edited.
+            from . import zimage_edit_helper as _zih
+            job_id = _zih.enqueue_zimage_edit(
+                user_id=str(user_id), source_filename=ds.ref_filename,
+                source_path=ref_path, edit_prompt=prompt, extra_metadata=meta)
         else:
             from .klein_edit_helper import enqueue_klein_edit
             # The dataset's extra refs DO reach Klein (native ReferenceLatent
@@ -3574,7 +3590,8 @@ def _enqueue_local_reference_edit(user_id, dataset_id, ds, engine, prompt, token
     except Exception as exc:
         from .klein_edit_helper import KleinModelsMissing
         from .krea_edit_helper import KreaModelsMissing
-        if isinstance(exc, (KleinModelsMissing, KreaModelsMissing)):
+        from .zimage_edit_helper import ZImageModelsMissing
+        if isinstance(exc, (KleinModelsMissing, KreaModelsMissing, ZImageModelsMissing)):
             # Typed on purpose: the route turns these into the SAME auto-download
             # 409 the generate path returns. Flattening them to a ValueError would
             # downgrade "I've started fetching the weight" to a bare 400.

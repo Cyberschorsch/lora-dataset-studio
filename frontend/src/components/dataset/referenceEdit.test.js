@@ -108,7 +108,7 @@ test('the refusal names the engines that DO edit, derived from the list', () => 
   // after a third became editable.
   const msg = editEngineChoiceMessage();
   for (const e of EDIT_ENGINES) assert.ok(msg.includes(ENGINE_LABELS[e]), e);
-  assert.equal(msg, 'Pick Klein, Krea 2 Edit, Nano Banana Pro, ChatGPT or OpenRouter');
+  assert.equal(msg, 'Pick Klein, Krea 2 Edit, Z-Image Turbo, Nano Banana Pro, ChatGPT or OpenRouter');
 });
 
 /* ── The three things a local engine does differently ─────────────────────── */

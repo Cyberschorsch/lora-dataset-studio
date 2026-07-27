@@ -25,7 +25,7 @@ import {
 export const EDIT_ENGINES = [...ENGINES];
 
 /** The refusal shown for a non-editable engine, DERIVED from EDIT_ENGINES:
- *  "Pick Klein, Krea 2 Edit, Nano Banana Pro, ChatGPT or OpenRouter". The old
+ *  "Pick Klein, Krea 2 Edit, Z-Image Turbo, Nano Banana Pro, ChatGPT or OpenRouter". The old
  *  sentence named two engines and kept naming two after a third became editable —
  *  a hardcoded list inside a message rots exactly like a hardcoded list anywhere
  *  else. It is now unreachable in practice (every engine edits) and kept as the
@@ -70,11 +70,14 @@ export function defaultEditEngine(storage, usable = null) {
  *                      request-scoped bytes and both local graphs want file
  *                      paths, so they are refused, not dropped.
  *   - 'primary_only' : the reference and nothing else (Krea's edit patch takes
- *                      one source; what a second does to identity is unmeasured).
+ *                      one source; what a second does to identity is unmeasured.
+ *                      Z-Image is stronger still: its graph has no reference
+ *                      channel at all, only a single init image).
  */
 export const EDIT_REF_SUPPORT = {
   klein: 'dataset_only',
   krea: 'primary_only',
+  zimage: 'primary_only',
 };
 export function editRefSupport(engine) {
   return EDIT_REF_SUPPORT[engine] || 'all';
