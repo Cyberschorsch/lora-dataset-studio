@@ -346,7 +346,7 @@ const ZIMAGE_STEPS_MAX = 50   // mirrors zimage_edit_helper _steps() clamp
    convention, and the field only exists for pinning a specific file. */
 function ZImageCard({ config, setField }) {
   const zimage = config.zimage || {}
-  const denoise = Number(zimage.denoise ?? 0.65)
+  const denoise = Number(zimage.denoise ?? 0.75)
   return (
     <Card
       id="zimage-engine"
@@ -370,8 +370,10 @@ function ZImageCard({ config, setField }) {
         <p className="mt-1 text-[0.6875rem] text-content-subtle">
           How much the model repaints over your reference. <b>Lower</b> = sticks to the
           reference (stronger likeness, less variety). <b>Higher</b> = follows the prompt
-          (looser likeness). 0.65 is the balanced default. Z-Image is a base model, not an
-          edit model, so identity is looser than Klein or Krea at any setting.
+          (looser likeness). 0.75 is the default — Z-Image is a base model, not an edit
+          model, so it needs more repaint than Klein or Krea before the prompt lands. It
+          varies expression, light, outfit and background well, but cannot rotate a frontal
+          reference into a true profile at any likeness-preserving setting.
         </p>
       </div>
 
