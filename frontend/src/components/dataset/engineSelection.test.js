@@ -4,6 +4,7 @@ import {
   canonicalEngines, readEngines, writeEngines, readMode, writeMode, primaryEngine,
   distributeVariations, engineBatches, kleinQueuesBehindApi, totalImages, estimateCost,
   billingEngines, generateBlockedReason, STORAGE_ENGINES, STORAGE_PRIMARY, STORAGE_MODE,
+  ENGINES, LOCAL_ENGINES, ENGINE_LABELS, ENGINE_RATES, ENGINE_ACCENTS, localOnly,
 } from './engineSelection.js';
 
 /** Minimal localStorage stand-in. `boom` makes every access throw, the private-
@@ -177,4 +178,16 @@ test('generateBlockedReason: no silent empty batch, and the server cap is explai
   // Unknown cap (older server / probe failed) → never blocks the user.
   assert.equal(generateBlockedReason({
     engines: ['klein', 'nanobanana', 'chatgpt'], shotCount: 25, mode: 'all' }), null);
+});
+
+test('zimage is a canonical, local, free engine', () => {
+  assert.ok(ENGINES.includes('zimage'));
+  assert.ok(LOCAL_ENGINES.includes('zimage'));
+  assert.equal(ENGINE_LABELS.zimage, 'Z-Image Turbo');
+  assert.equal(ENGINE_RATES.zimage, 0);
+  assert.ok(ENGINE_ACCENTS.zimage && ENGINE_ACCENTS.zimage.dot.includes('teal'));
+});
+
+test('a zimage-only selection counts as local-only (NSFW-capable)', () => {
+  assert.equal(localOnly(['zimage']), true);
 });

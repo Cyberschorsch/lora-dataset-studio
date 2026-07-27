@@ -19,7 +19,7 @@
 /** Canonical engine order — drives the card order, the primary pick and the
  *  round-robin. Stable: it is also the order batches are BUILT in, and the LOCAL
  *  engines must come last at DISPATCH time (see engineBatches). */
-export const ENGINES = ['klein', 'krea', 'nanobanana', 'chatgpt', 'openrouter'];
+export const ENGINES = ['klein', 'krea', 'zimage', 'nanobanana', 'chatgpt', 'openrouter'];
 
 export const API_ENGINES = ['nanobanana', 'chatgpt', 'openrouter'];
 
@@ -27,11 +27,12 @@ export const API_ENGINES = ['nanobanana', 'chatgpt', 'openrouter'];
  *  serialized on one GPU, and the ONLY ones allowed to receive 🔞 shots (the
  *  server refuses NSFW on every API engine). Mirrors
  *  face_dataset_service.LOCAL_ENGINES — derive from this, never re-list it. */
-export const LOCAL_ENGINES = ['klein', 'krea'];
+export const LOCAL_ENGINES = ['klein', 'krea', 'zimage'];
 
 export const ENGINE_LABELS = {
   klein: 'Klein',
   krea: 'Krea 2 Edit',
+  zimage: 'Z-Image Turbo',
   nanobanana: 'Nano Banana Pro',
   chatgpt: 'ChatGPT',
   openrouter: 'OpenRouter',
@@ -64,6 +65,17 @@ export const ENGINE_ACCENTS = {
     icon: 'text-violet-300',
     pill: 'bg-violet-500/25 text-violet-200',
     dot: 'bg-violet-400',
+  },
+  // Teal: a blue-green distinct from Klein's indigo and ChatGPT's sky in hue AND
+  // lightness, readable in deuteranopia, and NOT green (green means "kept / free"
+  // everywhere else). The third local engine sits beside the other two locals.
+  zimage: {
+    card: 'border-teal-400/60 bg-teal-500/15 ring-1 ring-teal-400/40',
+    title: 'text-teal-200',
+    text: 'text-teal-300',
+    icon: 'text-teal-300',
+    pill: 'bg-teal-500/25 text-teal-200',
+    dot: 'bg-teal-400',
   },
   nanobanana: {
     card: 'border-amber-400/60 bg-amber-500/15 ring-1 ring-amber-400/40',
@@ -102,7 +114,7 @@ export const ENGINE_ACCENTS = {
  *  so a user who points it at a cheaper or dearer slug pays that instead. The
  *  engine card says so — a number here is better than no guard-rail at all, but
  *  it is the only rate in this table that the user can move. */
-export const ENGINE_RATES = { klein: 0, krea: 0, nanobanana: 0.15, chatgpt: 0.17, openrouter: 0.15 };
+export const ENGINE_RATES = { klein: 0, krea: 0, zimage: 0, nanobanana: 0.15, chatgpt: 0.17, openrouter: 0.15 };
 
 export const STORAGE_ENGINES = 'datasetGenerators';     // JSON list (new)
 export const STORAGE_PRIMARY = 'datasetGenerator';      // legacy string mirror — NEVER renamed
