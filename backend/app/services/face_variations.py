@@ -917,6 +917,19 @@ def _compose_edit_prompt(prompt: str, *, nsfw: bool, framing, suffix: str,
         + f"{get_identity_prompt('klein_identity', st)} {ending}")
 
 
+def wrap_variation_zimage(prompt: str, nsfw: bool = False, framing: str | None = None,
+                          suffix: str = '', subject_type: str = 'human',
+                          label: str = '') -> str:
+    """Prompt for one Z-Image Turbo img2img shot. Z-Image has no identity LoRA, so
+    the prompt carries the whole intent; the composed structure (command → intended
+    result → identity lock → rendering tail) is the same as Klein/Krea, so this is a
+    thin alias. Kept as a named entry point because the engines are separate product
+    surfaces and only one may need to diverge next."""
+    return wrap_variation_klein(prompt, nsfw=nsfw, framing=framing, suffix=suffix,
+                                subject_type=subject_type, label=label)
+
+
+
 def _e(i, axis, framing, label, prompt, co=False, cb=False, aspect=None):
     return {'id': i, 'axis': axis, 'framing': framing, 'label': label,
             'prompt': prompt, 'changes_outfit': co, 'changes_bg': cb, 'aspect': aspect}
