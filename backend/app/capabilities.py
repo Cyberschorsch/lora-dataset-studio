@@ -1380,6 +1380,18 @@ def probe(force=False) -> dict:
     krea_blocking_invalid = any(i['blocking'] for i in krea_invalid)
     krea_ready = (comfy['ok'] and not krea_missing and not krea_nodes_missing
                   and not krea_blocking_invalid)
+    # Z-Image Turbo — the third LOCAL engine (img2img, core nodes only, so NO
+    # node-pack probe, like Klein). Honest tri-component readiness on the RESOLVER
+    # each loader would feed, plus the present-but-invalid gate.
+    from .services import zimage_edit_helper as _zih
+    zimage_missing = _zih.zimage_missing_assets()
+    zimage_invalid = _zih.zimage_invalid_assets()
+    zimage_blocking_invalid = any(
+        i['blocking'] and i['asset'] in _zih.ZIMAGE_REQUIRED for i in zimage_invalid)
+    zimage_ready = (comfy['ok'] and bool(_zih.resolve_zimage_unet())
+                    and bool(_zih.resolve_zimage_text_encoder())
+                    and bool(_zih.resolve_zimage_vae())
+                    and not zimage_blocking_invalid)
     base_dir = cfg.get('comfyui.base_dir') or ''
     from .services import comfyui_control
     comfy_launcher = comfyui_control.launcher_status()
@@ -1410,6 +1422,7 @@ def probe(force=False) -> dict:
             'openrouter': openrouter_['ok'],
             'klein': klein_ready,
             'krea': krea_ready,
+            'zimage': zimage_ready,
         },
         'chatgpt_subscription': {
             'connected': sub_status['connected'],
@@ -1462,6 +1475,8 @@ def probe(force=False) -> dict:
             # [{asset, filename, verdict, blocking, reason}] shape as
             # klein_invalid, so one banner covers both engines.
             'krea_invalid': krea_invalid,
+            'zimage_missing': zimage_missing,
+            'zimage_invalid': zimage_invalid,
             # Klein assets PRESENT on disk but not real, loadable weights:
             # [{asset, filename, verdict, blocking, reason}]. Distinct from
             # klein_missing (the file exists, it just can't load) — drives the Setup
