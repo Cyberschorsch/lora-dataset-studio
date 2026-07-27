@@ -737,7 +737,7 @@ def dataset_generate(dataset_id):
                 v.get('nsfw') or is_nsfw_label(v.get('label')) for v in variations):
             return jsonify({'ok': False,
                             'error': 'NSFW variations run on a local engine only — '
-                                     'switch the generator to Klein or Krea 2 Edit.'}), 400
+                                     'switch the generator to a local engine (Klein, Krea 2 Edit or Z-Image Turbo).'}), 400
     # Klein node preflight (once per request — /object_info is large, so never
     # per-tile): if the workflow needs a custom node this ComfyUI lacks, answer
     # one actionable 409 instead of a grid of tiles each failing ComfyUI
@@ -1313,6 +1313,12 @@ def dataset_image_regenerate(image_id):
                 krh.preflight()
             except krh.KreaModelsMissing as e:
                 return _krea_missing_response(e)
+        elif engine == 'zimage':
+            from ..services import zimage_edit_helper as zih
+            try:
+                zih.preflight()
+            except zih.ZImageModelsMissing as e:
+                return _zimage_missing_response(e)
         elif engine not in svc.API_ENGINES:
             from ..services import klein_edit_helper as keh
             missing_nodes = keh.klein_missing_nodes()
@@ -1331,6 +1337,9 @@ def dataset_image_regenerate(image_id):
             return _klein_missing_response(e.missing)  # auto-download, tell them to retry
         if isinstance(e, KreaModelsMissing):
             return _krea_missing_response(e)
+        from ..services.zimage_edit_helper import ZImageModelsMissing
+        if isinstance(e, ZImageModelsMissing):
+            return _zimage_missing_response(e)
         return _map_error(e)
     if job_id is None:
         return jsonify({'error': 'not found'}), 404
