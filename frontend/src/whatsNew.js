@@ -48,6 +48,14 @@ import { SETUP_DEEP_LINK_STEPS } from './hooks/useSetupSteps.js';
 // Newest first. Prepend new waves at the top.
 export const WHATS_NEW = [
   {
+    id: '2026-07-28-zimage-variations-actually-vary',
+    date: '2026-07-28',
+    title: 'Z-Image variations no longer come out as copies of your reference',
+    blurb:
+      'Generating a set with Z-Image Turbo gave you the same picture over and over — every "profile", "bust" or "smile" came back as a near-copy of the reference photo. Two things were fighting the prompt. First, Z-Image was borrowing Klein and Krea’s prompt, which is written for edit models that read the reference as an instruction ("restage the shot… use it only for the facial identity") — a plain base model like Z-Image can’t act on that language, so the real pose/framing cue got buried. It now gets its own clean, descriptive prompt built for a base model. Second, the default denoise (0.65) leaned too far toward the reference for a base engine; the default is now 0.75, where the prompt actually lands. Expression, lighting, outfit, background and mild angle changes come through now. One honest limit remains: img2img from a single frontal photo still can’t manufacture a true side profile without letting the face drift — that’s what Klein and Krea’s identity models are for. Nudge the denoise dial in Settings ▸ Image engines higher for more variety, lower for tighter likeness.',
+    to: '/settings/engines',
+  },
+  {
     id: '2026-07-27-zimage-turbo-engine',
     date: '2026-07-27',
     title: 'Generate with Z-Image Turbo (local)',

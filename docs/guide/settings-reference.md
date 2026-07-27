@@ -170,10 +170,14 @@ the engine card in the workspace names whichever is still missing.
 
 Settings:
 
-- **Reference denoise** → `zimage.denoise`. Range `0.1`–`1.0`, default **`0.65`**.
+- **Reference denoise** → `zimage.denoise`. Range `0.1`–`1.0`, default **`0.75`**.
   Z-Image Turbo runs img2img from your reference. Denoise is the identity ↔ prompt
   dial: **low** keeps more of the reference (stronger likeness, less variety),
-  **high** follows the prompt (looser likeness). 0.65 is the balanced default.
+  **high** follows the prompt (looser likeness). Z-Image is a *base* model, not an
+  edit model, so it needs more denoise than Klein or Krea before the prompt lands —
+  0.75 is the default; raise it toward 0.85 for more variety, lower it for tighter
+  likeness. Even at the top it cannot rotate a frontal reference into a true profile
+  without the face drifting (an img2img limit — that is what Klein/Krea are for).
 - **Sampler steps** → `zimage.steps`. Range `1`–`50`, default **`8`**. Sampler steps
   per generated variation. Z-Image Turbo is distilled for ~8 steps; more rarely helps
   and costs GPU time.

@@ -6,7 +6,7 @@ def test_zimage_in_default_engine_catalog():
 
 
 def test_zimage_settings_defaults():
-    assert cfg.DEFAULTS['zimage']['denoise'] == 0.65
+    assert cfg.DEFAULTS['zimage']['denoise'] == 0.75
     assert cfg.DEFAULTS['zimage']['steps'] == 8
 
 
