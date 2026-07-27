@@ -26,3 +26,11 @@ def test_install_all_plan_excludes_zimage():
                                            'zimage_vae']}}
     plan = si.install_all_plan(caps)
     assert not any(a.startswith('zimage_') for a in plan)
+
+
+def test_download_precheck_helpers_no_keyerror_for_zimage():
+    # The shared model-download pre-checks read specs from _MODEL_DOWNLOADS, so a
+    # zimage action must resolve like any other — never KeyError as it would if a
+    # helper still keyed off _KLEIN_DOWNLOADS.
+    assert si._variant_already_present('zimage_model') is None
+    assert si._download_present_in_extra('zimage_model') is False
