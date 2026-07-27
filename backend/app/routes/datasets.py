@@ -617,6 +617,59 @@ def _autostart_krea_install(missing, missing_nodes):
     return started
 
 
+_ZIMAGE_ASSET_LABELS = {
+    'zimage_model': 'Z-Image model', 'zimage_text_encoder': 'text encoder',
+    'zimage_vae': 'VAE',
+}
+
+
+def _autostart_zimage_downloads(missing):
+    """Kick off background downloads for the missing Z-Image assets. Returns
+    (started, needs_token). Never raises — a download that can't start (already
+    running, disk precondition) is reported, not fatal. Every Z-Image download is a
+    public Comfy-Org file (none gated), so needs_token stays False; the gated flag
+    is still honored data-driven for parity with Klein."""
+    from .. import setup_installer, config as cfg
+    has_token = bool(cfg.secret('HF_TOKEN'))
+    started, needs_token = [], False
+    for action in missing:
+        spec = setup_installer._ZIMAGE_DOWNLOADS.get(action, {})
+        if spec.get('gated') and not has_token:
+            needs_token = True
+            continue
+        try:
+            setup_installer.start(action)
+            started.append(action)
+        except setup_installer.AlreadyRunning:
+            started.append(action)
+        except Exception:
+            pass
+    return started, needs_token
+
+
+def _zimage_missing_response(e):
+    """Turn a ZImageModelsMissing into a (body, 409): auto-start the missing public
+    Z-Image downloads into the validated ComfyUI tree and tell the user to retry —
+    same auto-download shape as Klein's 409 (Z-Image assets are public direct
+    Hugging Face files wired into setup_installer). When ComfyUI itself isn't a real
+    install there's nowhere to place the files — return 'configure ComfyUI first'."""
+    from .. import capabilities, config as cfg
+    missing = list(e.missing or [])
+    if missing and not capabilities.resolve_comfyui_base(cfg.get('comfyui.base_dir') or '')['valid']:
+        return jsonify({'ok': False,
+                        'error': 'Point the app at your ComfyUI install folder in '
+                                 'Setup ▸ ComfyUI first, so the Z-Image models can be '
+                                 'downloaded into it.'}), 409
+    started, needs_token = _autostart_zimage_downloads(missing)
+    names = ', '.join(_ZIMAGE_ASSET_LABELS.get(m, m) for m in missing)
+    it = 'them' if len(missing) > 1 else 'it'
+    error = (f"Z-Image Turbo needs {names}. I've started downloading {it} into your "
+             "ComfyUI folder — watch progress in Setup ▸ ComfyUI, then retry generation.")
+    return jsonify({'ok': False, 'error': error,
+                    'zimage_missing': missing, 'downloading': started,
+                    'needs_token': needs_token}), 409
+
+
 def _autostart_optional_klein():
     """Fire-and-forget: fetch any still-missing OPTIONAL Klein asset (the
     consistency LoRA) after a successful generate, so it's present next time.
@@ -717,6 +770,12 @@ def dataset_generate(dataset_id):
             keh2.preflight()
         except keh2.KreaModelsMissing as e:
             return _krea_missing_response(e)
+    if any(g == 'zimage' for g, _ in batches):
+        from ..services import zimage_edit_helper as zih
+        try:
+            zih.preflight()
+        except zih.ZImageModelsMissing as e:
+            return _zimage_missing_response(e)
     created, per_engine = 0, {}
     try:
         # The per-engine calls each enforce MAX_FANOUT on their own share, which
@@ -739,6 +798,12 @@ def dataset_generate(dataset_id):
                 # not a per-run argument — see krea_edit_helper.grounding_px.
                 ids = svc.generate_variations_krea(LOCAL_USER, dataset_id,
                                                    variations, multiplier)
+            elif generator == 'zimage':
+                # Third LOCAL path (Z-Image Turbo img2img): GPU-bound, free,
+                # NSFW-capable. Its one dial (denoise) is a setting.
+                ids = svc.generate_variations_zimage(LOCAL_USER, dataset_id,
+                                                     variations, multiplier,
+                                                     data.get('zimage_model'))
             else:
                 ids = svc.generate_variations(LOCAL_USER, dataset_id,
                                               variations, multiplier,
@@ -758,6 +823,9 @@ def dataset_generate(dataset_id):
             return _klein_missing_response(e.missing)
         if isinstance(e, KreaModelsMissing):   # asset or node pack absent — no auto-fetch
             return _krea_missing_response(e)
+        from ..services.zimage_edit_helper import ZImageModelsMissing
+        if isinstance(e, ZImageModelsMissing):
+            return _zimage_missing_response(e)
         return _map_error(e)
     return jsonify({'ok': True, 'created': created, 'per_engine': per_engine})
 
