@@ -43,8 +43,8 @@ export function zimageUnavailableReason({
  *  the reference, HIGH follows the prompt. */
 export function denoiseDescription(v) {
   const n = Number(v);
-  if (!Number.isFinite(n)) return 'default (0.65)';
-  if (n <= 0.45) return `${n} · sticks to the reference, strong likeness, less variety`;
-  if (n < 0.75) return `${n} · balanced (recommended)`;
-  return `${n} · follows the prompt, looser likeness`;
+  if (!Number.isFinite(n)) return 'default (0.75)';
+  if (n <= 0.55) return `${n} · sticks to the reference, strong likeness, less variety`;
+  if (n < 0.85) return `${n} · follows the prompt with usable likeness (recommended)`;
+  return `${n} · strongly follows the prompt, likeness drifts`;
 }

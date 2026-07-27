@@ -242,7 +242,7 @@ def preflight():
 
 
 def build_workflow(source_image, prompt, *, unet, clip, vae, seed,
-                   steps=8, denoise=0.65, filename_prefix='zimage_edit'):
+                   steps=8, denoise=0.75, filename_prefix='zimage_edit'):
     """ComfyUI API-format img2img graph, built from ZImage_bigLove_ZT3_optimal.json
     (the advanced-sampler form Z-Image uses) plus a LoadImage->VAEEncode init
     latent. Pure function of its arguments — no cfg read, no disk — so a test can
@@ -250,7 +250,7 @@ def build_workflow(source_image, prompt, *, unet, clip, vae, seed,
     is guidance-distilled and ignores anything else. The reference is pre-sized by
     the caller (enqueue), so no scale node is needed here."""
     steps = 8 if steps is None else max(1, int(steps))
-    denoise = 0.65 if denoise is None else float(denoise)
+    denoise = 0.75 if denoise is None else float(denoise)
     return {
         '1': {'class_type': 'UNETLoader',
               'inputs': {'unet_name': unet, 'weight_dtype': 'default'},
@@ -319,8 +319,9 @@ def _clamp(value, lo, hi, default):
 def _denoise():
     """THE identity<->prompt dial: how much noise img2img adds over the reference.
     LOW = sticks to the reference (stronger likeness, less variety); HIGH = follows
-    the prompt (looser likeness). Default 0.65 (the krea2_turbo_img2img value)."""
-    return _clamp(cfg.get('zimage.denoise'), 0.1, 1.0, 0.65)
+    the prompt (looser likeness). Default 0.75 (a base img2img engine needs more
+    denoise than an edit model before the prompt overrides the reference)."""
+    return _clamp(cfg.get('zimage.denoise'), 0.1, 1.0, 0.75)
 
 
 def _steps():

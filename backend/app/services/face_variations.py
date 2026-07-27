@@ -920,13 +920,39 @@ def _compose_edit_prompt(prompt: str, *, nsfw: bool, framing, suffix: str,
 def wrap_variation_zimage(prompt: str, nsfw: bool = False, framing: str | None = None,
                           suffix: str = '', subject_type: str = 'human',
                           label: str = '') -> str:
-    """Prompt for one Z-Image Turbo img2img shot. Z-Image has no identity LoRA, so
-    the prompt carries the whole intent; the composed structure (command → intended
-    result → identity lock → rendering tail) is the same as Klein/Krea, so this is a
-    thin alias. Kept as a named entry point because the engines are separate product
-    surfaces and only one may need to diverge next."""
-    return wrap_variation_klein(prompt, nsfw=nsfw, framing=framing, suffix=suffix,
-                                subject_type=subject_type, label=label)
+    """Prompt for one Z-Image Turbo img2img shot.
+
+    Z-Image is a plain BASE text-to-image model, NOT an instruction-edit model
+    like Klein or Krea. It never receives the reference as semantic conditioning —
+    the reference is ONLY the img2img init latent (pixels), fed to the sampler at
+    an adjustable denoise. So the Klein/Krea edit wrapper is actively WRONG here:
+    its command language ("Create a new photo of the same person as the reference
+    image… Restage the shot… use it only for the facial identity") is meaningless
+    to a base model, which reads it as literal scene tokens. That buried the real
+    pose/framing cue under instructions it could not act on — every shot came back
+    a near-copy of the reference (live repro 2026-07-28, owner report).
+
+    This builds a clean DESCRIPTIVE prompt instead: the same descriptive body,
+    concrete garment, per-framing detail and photographic tail the edit wrapper
+    uses, but with ALL edit-instruction / "reference image" / identity-guard
+    language dropped. Identity carries through the init latent (loosely — Z-Image
+    has no identity model), so no textual identity lock is needed or possible.
+
+    A base model still cannot rotate a frontal reference into a true profile at a
+    denoise that keeps the face — that is an img2img limit, not a prompt one — but
+    expression, lighting, outfit, background and mild-angle variety now land."""
+    st = normalize_subject_type(subject_type)
+    medium = _KLEIN_MEDIUM.get(st, _KLEIN_MEDIUM_DEFAULT)
+    noun = _KLEIN_SUBJECT_NOUN.get(st, 'subject')
+    detail = (get_identity_prompt(f'framing_{framing}', st)
+              if framing in PROMPT_FRAMINGS else '').strip()
+    ending = get_identity_prompt('render_tail_nsfw' if nsfw else 'render_tail_sfw', st)
+    body = krea_outfit_directive(
+        apply_directive_overrides(_append_suffix(prompt, suffix)), label)
+    return (
+        f"A {medium} of a {noun}: {body}. "
+        + (f"{detail} " if detail else "")
+        + f"{ending}")
 
 
 

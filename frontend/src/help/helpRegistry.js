@@ -469,7 +469,7 @@ const TOPICS = [
   setting('zimage.denoise', 'engines', 'zimage-denoise', 'Z-Image Turbo reference denoise',
     ['zimage', 'z-image', 'z-image turbo', 'denoise', 'img2img', 'consistency', 'likeness',
      'resemblance', 'prompt adherence', 'variety', 'identity', 'reference', 'dial', 'slider',
-     'local engine', '0.65']),
+     'local engine', '0.75']),
   setting('zimage.steps', 'engines', 'zimage-steps', 'Z-Image Turbo sampler steps',
     ['zimage', 'z-image', 'steps', 'sampler', 'quality', 'slower', 'local engine', '8 steps']),
   setting('identity_prompts.face', 'engines', 'identity-prompts', 'Identity lock prompts (API engines)',

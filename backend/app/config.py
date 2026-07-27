@@ -120,7 +120,7 @@ DEFAULTS = {
     # Z-Image Turbo local engine (img2img). denoise is THE identity<->prompt dial
     # (low = sticks to the reference, high = follows the prompt); base_model is the
     # optional pinned UNET basename (blank = auto-resolve the first Z-Image build).
-    'zimage': {'denoise': 0.65, 'steps': 8, 'base_model': ''},
+    'zimage': {'denoise': 0.75, 'steps': 8, 'base_model': ''},
     # Cloud GPU training (vast.ai). Everything has a sane default: the only
     # required user input is the VAST_API_KEY secret. Values here are knobs
     # for power users / for adjusting after the real-world smoke test.
