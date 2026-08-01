@@ -170,12 +170,17 @@ DEFAULTS = {
     # negative. `steps` stays TURBO steps — Base needs ~28 and reusing the key would
     # silently run every existing install's saved 8. `body_source` = whether a
     # restaged body shot composites the square head crop or the full-frame original.
+    # `vae`/`text_encoder` are the two loader refs the shipped Test Studio workflow
+    # used to hardcode from the developer's own ComfyUI (reported by bobba84,
+    # GitHub #18) — blank = "find it yourself" (services/zimage_model_resolver
+    # scans every registered vae / text_encoders root); set either to pin a file.
     'zimage': {'denoise': 0.75, 'steps': 8, 'base_model': '',
                'variant': 'auto',        # auto|turbo|base
                'base_cfg': 4.0,          # 1.0..10.0, Base only
                'base_steps': 28,         # 1..60, Base only
                'base_negative': '',      # blank = the shipped default text
-               'body_source': 'crop'},   # crop|original
+               'body_source': 'crop',    # crop|original
+               'vae': '', 'text_encoder': ''},
     # Cloud GPU training (vast.ai). Everything has a sane default: the only
     # required user input is the VAST_API_KEY secret. Values here are knobs
     # for power users / for adjusting after the real-world smoke test.
@@ -390,15 +395,6 @@ DEFAULTS = {
         # How hard the source latent is pushed back into the model each step.
         'ref_boost': 0.25,
     },
-    # Z-Image pipeline — the two loader refs the shipped Test Studio workflow used
-    # to hardcode from the developer's own ComfyUI (reported by bobba84, GitHub #18).
-    # BLANK = "find it yourself": services/zimage_model_resolver scans every
-    # registered vae / text_encoders root, sub-folders included, case- and
-    # separator-insensitively (z_ae, z ae, z-ae, ae.safetensors; qwen_3_4b in any
-    # sub-folder). Set either to a filename to PIN it — a pinned value is used as-is
-    # and is never second-guessed, which is also the escape hatch when a shared
-    # ComfyUI carries several plausible files (a FLUX.1 `ae.safetensors`, say).
-    'zimage': {'vae': '', 'text_encoder': ''},
     # Editable identity / quality prompts (feature request by @bbsorry / 雨田壹).
     # The identity "locks" that ride ahead of every generated variation used to be
     # hardcoded and invisible; these overrides expose them without touching the

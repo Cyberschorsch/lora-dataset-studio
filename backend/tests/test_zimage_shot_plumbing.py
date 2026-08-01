@@ -94,7 +94,7 @@ def test_regenerate_forwards_the_same_shot_geometry(app, monkeypatch):
     import app.job_queue as jq
     got = _capture(monkeypatch)
     with app.app_context():
-        monkeypatch.setattr(jq.queue_manager, 'cancel_job', lambda *a, **k: None)
+        monkeypatch.setattr(jq.queue_manager, 'cancel_job', lambda *a, **k: True)
         ds = _ds_with_ref(svc)
         svc.generate_variations_zimage(
             LOCAL_USER, ds.id,
